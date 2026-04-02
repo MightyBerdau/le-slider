@@ -1,0 +1,12 @@
+# Session Configuration Example
+#
+# Defines participant ID, audio settings, file paths, and interface language
+# for a recording session.
+
+participant_id: "VP01"
+measurement_list_path: "measurement/Measurement_Lists/List1.txt"
+device_id: null  # null = use system default
+blocksize: 512
+buffersize: 20
+output_dir: "measurement/Results"
+language: "de"
