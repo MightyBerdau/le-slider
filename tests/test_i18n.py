@@ -5,7 +5,7 @@ Tests LanguagePack and text retrieval functionality.
 """
 
 import unittest
-from functions.i18n import LanguagePack, get_default_language_pack
+from functions.i18n import LanguagePack
 
 
 class TestLanguagePack(unittest.TestCase):
@@ -104,16 +104,6 @@ class TestLanguagePackTexts(unittest.TestCase):
                 pack.get(key)
             except KeyError:
                 self.fail(f"Key '{key}' not found in English pack")
-
-
-class TestDefaultLanguagePack(unittest.TestCase):
-    """Test module-level default language pack."""
-    
-    def test_get_default_pack(self):
-        """Get default language pack."""
-        pack = get_default_language_pack("de")
-        self.assertIsNotNone(pack)
-        self.assertEqual(pack.language, "de")
 
 
 if __name__ == '__main__':

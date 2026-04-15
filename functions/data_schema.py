@@ -12,38 +12,6 @@ import json
 
 
 @dataclass
-class RecordingFrame:
-    """Single frame of recorded rating data.
-    
-    Attributes:
-        frame: Frame index (0-based)
-        value: Recorded rating value (adjusted per config)
-        raw_value: Unmodified slider value (for debugging)
-        timestamp_rel_sec: Time relative to stimulus start (seconds)
-    """
-    frame: int
-    value: float
-    raw_value: float
-    timestamp_rel_sec: float
-
-
-@dataclass
-class AudioMetadata:
-    """Metadata about the audio stimulus.
-    
-    Attributes:
-        sample_rate: Sampling frequency in Hz
-        blocksize: Samples per audio callback
-        buffersize: Number of blocks in buffer
-        duration_sec: Total duration of stimulus
-    """
-    sample_rate: int
-    blocksize: int
-    buffersize: int
-    duration_sec: float
-
-
-@dataclass
 class RatingRecordingSchema:
     """Complete schema for a rating recording session.
     
@@ -145,40 +113,6 @@ class RatingRecordingSchema:
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return RatingRecordingSchema.from_json_dict(data)
-
-
-def validate_recording_schema(data: Dict[str, Any]) -> bool:
-    """Validate a recording schema dictionary.
-    
-    Args:
-        data: Dictionary to validate
-        
-    Returns:
-        True if valid
-        
-    Raises:
-        ValueError: If validation fails
-    """
-    # Check required top-level fields
-    required_fields = ['participant_id', 'stimulus_file', 'recordings']
-    for field_name in required_fields:
-        if field_name not in data:
-            raise ValueError(f"Missing required field: '{field_name}'")
-    
-    # Validate recordings is a list
-    if not isinstance(data['recordings'], list):
-        raise ValueError("'recordings' must be a list")
-    
-    # Validate each recording frame
-    for i, frame in enumerate(data['recordings']):
-        if not isinstance(frame, dict):
-            raise ValueError(f"Recording frame {i} must be a dict")
-        required_frame_fields = ['frame', 'value', 'timestamp_rel_sec']
-        for field_name in required_frame_fields:
-            if field_name not in frame:
-                raise ValueError(f"Recording frame {i} missing field: '{field_name}'")
-    
-    return True
 
 
 def create_recording_schema(

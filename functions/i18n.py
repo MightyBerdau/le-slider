@@ -164,20 +164,4 @@ def _build_language_strings() -> Dict[str, Dict[str, str]]:
     }
 
 
-# Convenience function for module-level access
-_default_pack: Optional[LanguagePack] = None
 
-
-def get_default_language_pack(language: Literal["de", "en"] = "de") -> LanguagePack:
-    """Get or create the default language pack.
-    
-    Args:
-        language: Language code for initial setup
-        
-    Returns:
-        Module-level LanguagePack instance
-    """
-    global _default_pack
-    if _default_pack is None:
-        _default_pack = LanguagePack(language)
-    return _default_pack
