@@ -8,7 +8,6 @@ class SettingsScreen(ui.dialog):
             txt_file_list: list[str],
             device_list: sd.DeviceList,
             # stimuli_lists_path: str = 'txt_lists_debugging',
-            results_path: str = 'measurement/Results',
             blocksize_init: int = 256,
             buffersize_init: int = 4):
         """ Settings dialog for experiment configuration.
@@ -24,7 +23,6 @@ class SettingsScreen(ui.dialog):
         self.props('persistent')
         self.txt_file_list = txt_file_list
         self.device_list = device_list
-        self.results_path = results_path
         self.blocksize_init = blocksize_init
         self.buffersize_init = buffersize_init
 
@@ -85,7 +83,6 @@ class SettingsScreen(ui.dialog):
         settings = {
             'participant_id': self.participant_id_field.value,
             'stimulus_list': self.dropdown_filelist.value,
-            'output_dir': self.results_path,
             'device_id': self.idx_list[self.selection_list.index(self.dropdown_device.value)],
             'blocksize': int(self.blocksize_textfield.value or self.blocksize_init),
             'buffersize': int(self.buffersize_textfield.value or self.buffersize_init),
