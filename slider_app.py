@@ -1,17 +1,12 @@
 from nicegui import ui
-import socket
 
 from functions.gui import RatingSlider, SettingsScreen
+from functions.network import get_local_ip
 from functions.session import MeasurementSession
 
 # TODO implement logging in session?
 # import logging
 # logger = logging.getLogger(__name__)
-
-def get_local_ip():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.connect(('8.8.8.8', 80)) # no actual connection, but checking for IP
-        return s.getsockname()[0]
 
 async def run_measurement():
     session = MeasurementSession() # Manages measurement procedure
