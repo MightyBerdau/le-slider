@@ -21,6 +21,8 @@ test/**/*.wav
 measurement/
 **/*.png
 **/*.wav
+**/*.txt
+results/*.json
 
 # Excluding tascar directory for Windows users
 functions/tascar

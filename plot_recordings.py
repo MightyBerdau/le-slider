@@ -1,16 +1,19 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
+import os
+
+from functions.data_io import RatingRecordingSchema
 
 def main(args: argparse.Namespace):
-    # Read recording
-    with open(args.filepath_recording, 'r') as file:
-        rating = json.load(file)
+    schema = RatingRecordingSchema.from_json_file(args.filepath_recording)
 
     # Plotting
     fig, ax = plt.subplots()
-
-    ax.plot(rating)
+    ax.plot(schema.time_stamps, schema.ratings)
+    ax.set_xlabel('Time / s')
+    ax.set_ylabel('LE / ESCU')
+    ax.set_title(f'{os.path.basename(args.filepath_recording)}')
     plt.show()
 
 if __name__ == '__main__':

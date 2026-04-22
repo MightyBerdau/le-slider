@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.colors import Colormap
 from nicegui import ui
 import sounddevice as sd
 
@@ -64,18 +65,6 @@ class SettingsScreen(ui.dialog):
                     )
                     self.blocksize_textfield.tooltip('Block size for audio processing')
                     
-                    self.buffersize_textfield = ui.input(
-                        label='Buffersize', value=str(buffersize_init)
-                    )
-                    self.buffersize_textfield.tooltip('Buffer size for audio')
-                
-                with ui.row():
-                    self.language_select = ui.select(
-                        ['de', 'en'],
-                        value='de',
-                        label='Language'
-                    )
-                
                 ui.button('Submit', on_click=self.submit)
 
     def submit(self):
@@ -84,9 +73,7 @@ class SettingsScreen(ui.dialog):
             'participant_id': self.participant_id_field.value,
             'stimulus_list': self.dropdown_filelist.value,
             'device_id': self.idx_list[self.selection_list.index(self.dropdown_device.value)],
-            'blocksize': int(self.blocksize_textfield.value or self.blocksize_init),
-            'buffersize': int(self.buffersize_textfield.value or self.buffersize_init),
-            'language': self.language_select.value if hasattr(self, 'language_select') else 'de',
+            'blocksize': int(self.blocksize_textfield.value or self.blocksize_init)
         }
         super().submit(settings)
 
@@ -146,46 +133,53 @@ class RatingSlider(ui.column):
             self,
             min_val:float = 1.0,
             max_val:float = 14.0,
+            init_val:float = 7.0,
             step_width:float = 0.1,
-            value_init:float = 7.0,
+            title:str = 'Listening Effort',
+            categories_dict:dict = {
+                1:  "mühelos",
+                2:  "",
+                3:  "sehr wenig anstrengend",
+                4:  "",
+                5:  "wenig anstrengend",
+                6:  "",
+                7:  "mittelgradig anstrengend",
+                8:  "",
+                9:  "deutlich anstrengend",
+                10: "",
+                11: "sehr anstrengend",
+                12: "",
+                13: "extrem anstrengend",
+                14: "nur Störgeräusch"
+            },
             marker_step:float = 1.0,
             cmap_name:str = 'hsv',
             cmap_min: float = 0.03,
             cmap_max:float = 0.33,
-            background_alpha:float = 0.5
+            invert_cmap: bool = True,
+            background_alpha:float = 0.5,
+            set_enabled_on_init:bool = False
             ):
         super().__init__()
         self._min_val = min_val
         self._max_val = max_val
+        self._init_val = init_val
         self._step_width = step_width
-        self._value_init = value_init
+        self._title = title
+        self._categories_dict = categories_dict
         self._marker_step = marker_step
         self._cmap_name = cmap_name
         self._cmap_min = cmap_min
         self._cmap_max = cmap_max
+        self._invert_cmap = invert_cmap
         self._background_alpha = background_alpha
+        self._set_enabled_on_init = set_enabled_on_init
 
         self._cmap = plt.get_cmap(self._cmap_name)
 
-        self._categories_dict = {
-            1:  "mühelos",
-            2:  "",
-            3:  "sehr wenig anstrengend",
-            4:  "",
-            5:  "wenig anstrengend",
-            6:  "",
-            7:  "mittelgradig anstrengend",
-            8:  "",
-            9:  "deutlich anstrengend",
-            10: "",
-            11: "sehr anstrengend",
-            12: "",
-            13: "extrem anstrengend",
-            14: "nur Störgeräusch"
-        }
         
         with self.classes("w-full items-center"):
-            ui.label('Le Slider!').classes("h-[10svh] text-3xl")
+            ui.label(self._title).classes("h-[10svh] text-3xl")
             
             with ui.row().classes("h-[90svh] max-h-96"):
                 with ui.column().classes("h-full justify-center"):
@@ -193,7 +187,7 @@ class RatingSlider(ui.column):
                         min = self._min_val,
                         max = self._max_val,
                         step = self._step_width,
-                        value = self._value_init
+                        value = self._init_val
                     ).on('update:model-value', lambda e: self.update_background_color(e.args))
                     # TODO for general usage define reverse arg, if 1 should be at top and >1 at the bottom...
                     self.slider.props(
@@ -210,6 +204,9 @@ class RatingSlider(ui.column):
                             ui.space()
                         else:
                             ui.label(label).classes('text-xs')
+            
+        if not self._set_enabled_on_init:
+            self.disable()
     
     @property
     def value(self):
@@ -222,13 +219,32 @@ class RatingSlider(ui.column):
         self.slider.disable()
 
     def update_background_color(self, value: float):
-        # TODO make separate testable function that also allows for colorizing "in the other direction" (1=red, 14=green)
-        norm_val = (value - self._min_val) / (self._max_val - self._min_val)
-        mapped_value = (1-norm_val) * (self._cmap_max - self._cmap_min) + self._cmap_min # TODO INVERSION! (1-norm_val)
-        color = self._cmap(mapped_value)
-        r, g, b = [int(c * 255) for c in color[:3]] # for RGB, 255 is the maximum value
-        r += ((255 - r) * self._background_alpha)
-        g += ((255 - g) * self._background_alpha)
-        b += ((255 - b) * self._background_alpha)
-        bg = f'rgb({r}, {g}, {b})'
-        ui.query('body').style(f'background-color: {bg}')
+        r, g, b = get_rbg_colors(
+            cmap = self._cmap,
+            value = value,
+            min_val = self._min_val,
+            max_val = self._max_val,
+            cmap_min = self._cmap_min,
+            cmap_max = self._cmap_max,
+            alpha = self._background_alpha,
+            invert_cmap = self._invert_cmap
+        )
+        ui.query('body').style(f'background-color: rgb({r}, {g}, {b})')
+
+def get_rbg_colors(
+        cmap: Colormap,
+        value: float,
+        min_val: float,
+        max_val: float,
+        cmap_min: float,
+        cmap_max: float,
+        alpha: float,
+        invert_cmap: bool = False):
+    if invert_cmap:
+        norm_val = (value - max_val) / (min_val - max_val)
+    else:
+        norm_val = (value - min_val) / (max_val - min_val)
+    mapped_value = norm_val * (cmap_max - cmap_min) + cmap_min
+    color = cmap(mapped_value)
+    r, g, b = [int(255 * (c * (1 - alpha) + alpha)) for c in color[:3]]
+    return r, g, b
