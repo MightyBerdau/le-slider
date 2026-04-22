@@ -1,4 +1,5 @@
 from nicegui import ui
+import socket
 
 from functions.gui import RatingSlider, SettingsScreen
 from functions.session import MeasurementSession
@@ -6,6 +7,11 @@ from functions.session import MeasurementSession
 # TODO implement logging in session?
 # import logging
 # logger = logging.getLogger(__name__)
+
+def get_local_ip():
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(('8.8.8.8', 80)) # no actual connection, but checking for IP
+        return s.getsockname()[0]
 
 async def run_measurement():
     session = MeasurementSession() # Manages measurement procedure
@@ -15,4 +21,9 @@ async def run_measurement():
     await session.run() # Starting measurement
 
 ui.timer(0, run_measurement, once=True)
-ui.run(host='0.0.0.0')
+
+local_ip = get_local_ip()
+port = 8080
+print(f'Enter the following address your smartphone browser: http://{local_ip}:{port}')
+
+ui.run(reload=False, host=local_ip, port=port)
