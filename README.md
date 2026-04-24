@@ -1,742 +1,245 @@
-# le_slider: Rating Collection Toolbox
+# le slider
+A flexible Python framework for collecting continuous ratings of psychoacoustic stimuli from participants using a slider interface.
+Originally built for subjective Listening Effort (LE) assessment ([see citation](#citation)), but the project offers easy ways of customization for other types of psychoacoustic percepts.
+___
 
-A flexible Python framework for collecting continuous ratings of psychoacoustic stimuli from participants. Originally built for Listening Effort (LE) measurement, now generalized to support any continuous rating scale.
-
-**Key Features:**
-- 📋 **Configuration-driven** — Define sliders via YAML, no code changes needed
-- 🌍 **Multi-language** — Built-in German/English support, extensible to other languages
-- 🎚️ **Flexible scales** — Support any continuous rating scale (1-14, 0-100, custom ranges)
-- 📊 **FAIR data** — JSON output with complete metadata (frame-level audio sync, timestamps, config)
-- 🧪 **Well-tested** — 96 unit tests, 100% passing
-- 🔌 **Extensible** — Modular architecture supports custom slider types and audio processing
-
----
-
-## 📑 Table of Contents
-
-- [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Step 1: Clone or Download](#step-1-clone-or-download-the-project)
-  - [Step 2: Create Virtual Environment](#step-2-create-virtual-environment)
-  - [Step 3: Install Dependencies](#step-3-install-dependencies)
-- [Quick Start](#quick-start)
-  - [Basic Usage](#1-basic-usage-with-default-listening-effort-scale)
-  - [Using Configuration Files](#2-using-configuration-files)
-  - [Recording Session Workflow](#3-typical-recording-session-workflow)
-- [Configuration Guide](#configuration-guide)
-  - [Stimulus List Format](#stimulus-list-format)
-  - [YAML Format](#configuration-yaml-format)
-  - [Example Scales](#example-different-scales)
-- [Usage Examples](#usage-examples)
-- [Output Data Format](#output-data-format)
+# Table of Contents
+- [Setup](#setup)
+    - [Installation](#installation-️)
+    - [Project Structure](#project-structure-)
+- [Usage](#usage)
+    - [Before You Start](#before-you-start-)
+        - [Required Hardware](#required-hardware-)
+        - [Creating Measurement Lists](#creating-measurement-lists-)
+    - [Starting the App](#starting-the-app-)
+        - [Settings](#settings-)
+        - [Assessment](#assessment-)
+    - [Load Ratings](#load-ratings-)
+- [Customization](#customization)
+    - [Slider Configuration](#slider-configuration-)
+    - [Dialog Customization](#dialog-customization-)
 - [Troubleshooting](#troubleshooting)
-- [File Structure](#file-structure)
-- [API Reference](#api-reference)
-- [Logging](#logging)
-- [For Developers](#for-developers)
-- [Citation](#citation)
+- [FAQ](#faq)
 - [Acknowledgements](#acknowledgements)
-- [License](#license)
-- [Support & Feedback](#support--feedback)
+- [Citation](#citation)
+___
 
----
+# Setup
 
-## Installation
-
-### Requirements
-- Python 3.9 or higher
-- pip package manager
+## Installation 🛠️
+This project has been tested on Windows 11 and should work on macOS and Linux as well.
+[Python 3.11.3](https://www.python.org/downloads/release/python-3113/) is recommended, though other Python 3.10+ versions may work.
 
 ### Step 1: Clone or Download the Project
 
+Then navigate to the project directory:
 ```bash
 cd /path/to/le_slider
 ```
 
-### Step 2: Create Virtual Environment
+### Step 2: Virtual Environment
 
+Create a virtual environment like this:
 ```bash
 python -m venv .venv
 ```
 
-**Activate virtual environment:**
-
-**Windows (PowerShell):**
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-**Windows (CMD):**
+Then activate the environment like this (**Windows**):
 ```cmd
-.venv\Scripts\activate.bat
+.venv\Scripts\activate
 ```
 
-**macOS/Linux:**
+...or like this for **macOS/Linux**:
 ```bash
 source .venv/bin/activate
 ```
 
 ### Step 3: Install Dependencies
 
+Just run:
 ```bash
 pip install -r requirements.txt
 ```
 
-**Core dependencies:**
-- `sounddevice` — Audio I/O
-- `soundfile` — Audio file reading
-- `nicegui` — Web UI framework
-- `pyyaml` — Configuration files
-- `numpy` — Data processing
-- `matplotlib` — Visualization
+## Project Structure 📂
+These are the most relevant directories and files:
+
+```
+├── examples
+│   ├── ...EXAMPLE SCRIPTS FOR DATA PROCESSING AND VISUALIZATION
+
+├── functions
+│   ├── ...CORE MODULES FOR AUDIO, GUI, AND NETWORKING
+
+├── measurement_lists
+│   ├── ...COPY YOUR LISTS FOR STIMULUS ORDER HERE! 
+
+├── results
+│   ├── ...SLIDER RECORDINGS WILL GO HERE
+
+├── requirements.txt    REQUIRED PYTHON PACKAGES
+├── slider_app.py       MAIN SCRIPT TO START MEASUREMENT
+```
+___
+
+# Usage 
+The general idea of this project is to play dynamic stimuli to participants via headphones, while they can continuously rate listening effort using the slider.
+
+## Before You Start ✋
+
+### Required Hardware 🎧
+You will at least need **headphones** and a **sound device** that has a **minimum of two output channels**. The code will play audio to channels 0 and 1 (left and right ear).
+For using a **smartphone** to control the slider interface, you will need a **local network**. You can use a WiFi router or create a smartphone hotspot. The computer running the code and the smartphone must be **on the same network**. **Important:** Corporate or institutional networks (e.g., university WiFi) may block the required ports or allow other users to interfere with your connection. A dedicated personal network is strongly recommended for reliable operation.
+
+### Creating Measurement Lists 📋
+A measurement list defines the order of any number of stimuli to be used for the continuous assessment. You can create any number of measurement lists to the `measurement_lists` directory. A measurement list must be a `.txt` file, where every line contains a filepath, like for example:
+```
+C:/Users/username/Desktop/awesome_stimuli/stimulus1.wav
+C:/Users/username/Desktop/awesome_stimuli/stimulus2.wav
+../parallel_directory/another_stimulus.wav
+```
+**Filenames have to be unique, because the results will be saved with the same base name as the audio file!**
+Note that it can be absolute or relative paths, but using absolute ones might be less error prone.
+Files are played back in the measurement in the order from top to bottom.
 
 ---
 
-## Quick Start
-
-### 1. Basic Usage (with default Listening Effort scale)
-
+## Starting the App ▶️
+Run the slider script:
 ```bash
 python slider_app.py
 ```
 
-This launches a web browser with the rating interface using default settings:
-- **Scale:** 1-14 (Listening Effort, German categories)
-- **Language:** German
-- **Output:** `measurement/Results/`
+The code will output an address to the terminal that you can enter in a browser on your smartphone to use the slider interface via smartphone. The computer running the code must be in the same network as the smartphone!
 
-### 2. Using Configuration Files
+### Settings ⚙️
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="40%" style="border: none;">
+      <img src="doc/Settings_demo.gif" alt="Settings Demo" width="100%">
+    </td>
+    <td style="border: none; padding-right: 20px;">
+You will be prompted with a settings dialog where you can configure the participant identifier, the measurement list to be used, the audio interface to be used and the blocksize
 
-Create a config file `my_experiment.yaml`:
 
-```yaml
-name: listening_effort
-min_val: 1
-max_val: 14
-init_val: 7
-step: 0.1
-marker_step: 1
-categories:
-  1: "effortless"
-  3: "light effort"
-  5: "moderate effort"
-  7: "considerable effort"
-  9: "strong effort"
-  11: "very strong effort"
-  13: "maximum effort"
-  14: "only noise"
-language: en
-```
+After accepting the settings, you can hand the smartphone to the participant.
+    </td>
+  </tr>
+</table>
 
-Then set the config in `slider_app.py`:
+- **Participant ID**: A unique identifier for this assessment session
+- **Measurement List**: Select your prepared stimulus list from the `measurement_lists/` directory
+- **Audio Device**: Only devices with ≥2 output channels are listed (required for stereo/dichotic stimuli)
+- **Blocksize**: The buffer size for audio playback (e.g., 512, 1024, 2048). Smaller values reduce latency but may cause audio dropouts on slower systems. Start with 1024 if you experience issues.
 
-```python
-DEFAULT_CONFIG_FILE = "my_experiment.yaml"
-```
 
-Run the app:
-```bash
-python slider_app.py
-```
+### Assessment 🎚️
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="border: none; padding-right: 20px;">
+Before each stimulus, a pre-stimulus dialog appears that the participant accepts to start playback and begin continuous rating.
+During playback, the participant adjusts the slider to reflect their real-time assessment. Ratings are recorded at regular intervals.
+After each stimulus, a post-stimulus dialog appears. Once dismissed, the code proceeds to the next stimulus with the same process.
+Finally, an end screen confirms that the measurement is complete.
+    </td>
+    <td width="40%" style="border: none;">
+      <img src="doc/Stimulus_demo.gif" alt="Stimulus Demo" width="100%">
+    </td>
+  </tr>
+</table>
 
-### 3. Typical Recording Session Workflow
-
-1. **Program starts** → Settings dialog
-2. **Enter settings:**
-   - Participant ID (e.g., "VP001")
-   - Stimulus list (e.g., `measurement/Measurement_Lists/list_1.txt`)
-   - Output directory
-   - Audio device
-   - Language
-3. **Click Submit** → Greetings screen
-4. **Click Begin** → Start dialog (for first stimulus)
-5. **Click Start** → Audio plays, user rates with slider
-6. **Rating ends** → Post-stimulus dialog (for questionnaire)
-7. **Click Continue** → Next stimulus (or end screen if all done)
+All ratings are automatically saved to `results/` as `<participant ID>_<base filename>.json`.
 
 ---
 
-## Configuration Guide
+## Load Ratings 💾
+You can read the recorded ratings using the [le_slider_io](https://github.com/MightyBerdau/LE-Slider-IO) project. See the [examples/plot_recordings.py](examples/plot_recordings.py) file for how to use it.
 
-### Stimulus List Format
+### Output Format
+Results are saved in `results/{participant_id}/` as CSV files named `{stimulus_filename}_ratings.csv`. Each file contains:
+- `timestamp`: Relative time in seconds from stimulus start
+- `rating`: Slider value at that moment (float between min and max)
+___
 
-Create a `.txt` file with one filename per line (audio files should be in accessible paths):
+# Customization
 
-**Example: `measurement/Measurement_Lists/list_1.txt`**
-```
-audio/stimulus_1.wav
-audio/stimulus_2.wav
-audio/stimulus_3.wav
-```
+## Slider Configuration 🎚️
+Create custom assessment scales by editing [config/slider.yaml](config/slider.yaml). This configuration file defines:
+- **Scale range** (`min_val`, `max_val`): Define min/max slider values
+- **Categories**: Named anchor points (e.g., "poor", "excellent") displayed on the scale
+- **Title**: Scale label shown to participants  
+- **Colors**: Visual feedback via colormaps (HSV hue range, opacity)
+- **Step width**: Granularity of slider increments
 
-### Configuration YAML Format
-
-All slider configurations use this YAML structure:
-
+### Example: Custom Speech Quality Scale
 ```yaml
-# Required
-name: listening_effort          # Unique identifier
-min_val: 1                      # Minimum slider value
-max_val: 14                     # Maximum slider value
-init_val: 7                     # Initial position
-step: 0.1                       # Step size between values
-marker_step: 1                  # Distance between marker lines
+min_val: 1.0
+max_val: 5.0
+init_val: 3.0
+step_width: 0.1
 
-# Optional
-categories:                     # Category labels at specific values
-  1: "effortless"
-  14: "only noise"
-language: de                    # Language: 'de' or 'en'
-description: "Listening Effort" # Human-readable description
-```
-
-### Example: Different Scales
-
-**Speech Quality (1-5 scale):**
-```yaml
-name: speech_quality
-min_val: 1
-max_val: 5
-init_val: 3
-step: 0.1
-marker_step: 1
-categories:
-  1: "very bad"
+title: 'Speech Quality'
+categories_dict:
+  1: "bad"
+  2: "poor"
   3: "fair"
+  4: "good"
   5: "excellent"
-language: en
+marker_step: 1.0
+
+cmap_name: 'hsv'
+cmap_min: 0.03
+cmap_max: 0.33
+invert_cmap: false
+background_alpha: 0.33
 ```
 
-**Noisiness (0-100 scale):**
-```yaml
-name: noisiness
-min_val: 0
-max_val: 100
-init_val: 50
-step: 1
-marker_step: 10
-language: de
-```
+## Dialog Customization 💬
+Customize instructions and dialog texts by editing [functions/gui.py](functions/gui.py). Each dialog class contains message strings:
+- **StartDialog**: Pre-stimulus instructions  
+- **PostStimulusDialog**: Post-stimulus reminders
+- **EndScreen**: Completion message
 
-### Where to Place Config Files
+Modify these strings to translate the interface or customize instructions for your participants.
 
-Place your custom YAML files in:
-- `examples/` — For reference configurations
-- Or any accessible directory and update `DEFAULT_CONFIG_FILE` in `slider_app.py`
+___
 
-Provided examples (in `examples/`):
-- `config_listening_effort_de.yaml` — LE scale, German
-- `config_listening_effort_en.yaml` — LE scale, English
-- `config_speech_quality_en.yaml` — Speech quality, English
-- `config_noisiness_en.yaml` — Noisiness, English
+# Troubleshooting
 
----
+**Audio dropouts or crackling**
+- Cause: Blocksize is too small for your system
+- Solution: Increase blocksize in Settings (try 1024 or 2048 instead of 512)
 
-## Usage Examples
+**Participant can't reach the app on phone**
+- Cause: Computer and phone not on same network, or port blocked
+- Solution: Verify both devices on same WiFi; check Windows Firewall settings
 
-### Example 1: Run LE Study (German)
+# FAQ
 
-```bash
-# 1. Open slider_app.py, set:
-DEFAULT_CONFIG_FILE = "examples/config_listening_effort_de.yaml"
-DEFAULT_STIMULUS_LIST = 'measurement/Measurement_Lists/list_1.txt'
+**What audio formats are supported?**
+Anything that is supported by [soundfile](https://github.com/bastibe/python-soundfile), like for example `.wav`, `.flac` or `.mp3`.
 
-# 2. Run
-python slider_app.py
+**Can multiple participants run assessments simultaneously?**
+No. Each participant needs their own computer to avoid audio conflicts and network issues.
 
-# 3. In UI:
-# - Enter participant ID: "VP001"
-# - Select stimulus list: list_1.txt
-# - Choose output directory: measurement/Results
-# - Select audio device
-# - Click Submit
+**How do I change the interface language?**
+Edit text strings in [functions/gui.py](functions/gui.py) dialog classes, or modify categories in [config/slider.yaml](config/slider.yaml).
+___
 
-# 4. Output: measurement/Results/VP001_stimulus_1.json, etc.
-```
+# Acknowledgements
+This project was created with the assistance of **GitHub Copilot** with **Claude Haiku 4.5** as the underlying language model to make the slider code from the original publication a flexible standalone application.
+___
 
-### Example 2: Add Speech Quality Measure
-
-```bash
-# 1. Copy example config
-cp examples/config_speech_quality_en.yaml examples/config_squawk.yaml
-
-# 2. Customize squawk.yaml with your scale
-
-# 3. Update slider_app.py:
-DEFAULT_CONFIG_FILE = "examples/config_squawk.yaml"
-
-# 4. Run
-python slider_app.py
-```
-
-### Example 3: Programmatic Session Management
-
-```python
-from functions.session import SliderSession
-from functions.config import load_slider_config_from_yaml
-
-# Load config from YAML
-config = load_slider_config_from_yaml("examples/config_listening_effort_en.yaml")
-
-# Create session
-session = SliderSession(
-    slider_config=config,
-    participant_id="VP001",
-    stimulus_list_file="measurement/Measurement_Lists/list_1.txt",
-    output_dir="measurement/Results",
-    device_id=None,  # Auto-detect
-    blocksize=256,
-    buffersize=4,
-    language="en"
-)
-
-# Register callbacks (optional)
-session.on_playback_started = lambda: print("Playing audio...")
-session.on_playback_finished = lambda: print("Recording saved")
-
-# Play first stimulus
-session.start_playback(session.get_current_stimulus())
-
-# When done: save and move to next
-session.save_current_recording()
-session.next_stimulus()
-```
-
----
-
-## Output Data Format
-
-Each rating session produces a JSON file with complete metadata:
-
-**File:** `participant_id_stimulus_name.json`
-
-**Structure:**
-```json
-{
-  "version": "1.0",
-  "participant_id": "VP001",
-  "session_id": "2026-04-02T10:26:00.148950Z",
-  "stimulus_file": "stimulus_1.wav",
-  "timestamp_start": "2026-04-02T10:26:00.148950Z",
-  "timestamp_end": "2026-04-02T10:26:05.123456Z",
-  "slider_config": {
-    "name": "listening_effort",
-    "min_val": 1,
-    "max_val": 14,
-    "init_val": 7,
-    "categories": {
-      "1": "effortless",
-      "14": "only noise"
-    }
-  },
-  "audio_settings": {
-    "sample_rate": 48000,
-    "blocksize": 256,
-    "buffersize": 4,
-    "duration_sec": 5.123
-  },
-  "recordings": [
-    {
-      "frame": 0,
-      "value": 7.0,
-      "raw_value": 7.0,
-      "timestamp_rel_sec": 0.0
-    },
-    {
-      "frame": 1,
-      "value": 7.5,
-      "raw_value": 7.5,
-      "timestamp_rel_sec": 0.005
-    }
-  ]
-}
-```
-
-**Data Fields:**
-- `recordings[].frame` — Sequential frame number (0-based)
-- `recordings[].value` — Rating value given at this frame
-- `recordings[].timestamp_rel_sec` — Time since audio start (seconds)
-- `slider_config` — Complete config used for rating (for FAIR compliance)
-- `audio_settings` — Sample rate, blocksize for timing reproduction
-
-### Importing Data into Analysis
-
-**Python (pandas):**
-```python
-import json
-import pandas as pd
-
-with open("VP001_stimulus_1.json", 'r') as f:
-    data = json.load(f)
-
-# Extract recordings
-df = pd.DataFrame(data['recordings'])
-print(df.head())
-
-# Access metadata
-participant_id = data['participant_id']
-config = data['slider_config']
-print(f"Scale: {config['min_val']} - {config['max_val']}")
-```
-
-**MATLAB:**
-```matlab
-data = jsondecode(fileread('VP001_stimulus_1.json'));
-ratings = [data.recordings.value];
-timestamps = [data.recordings.timestamp_rel_sec];
-plot(timestamps, ratings)
-```
-
----
-
-## Troubleshooting
-
-### Issue: "No audio devices found"
-
-**Problem:** SettingsScreen shows "No stereo output devices found"
-
-**Solution:**
-1. Check system audio settings (Windows/macOS sound control panel)
-2. Ensure at least one stereo output (speakers/headphones) is connected
-3. Try `python -c "import sounddevice; print(sounddevice.query_devices())"`
-
-### Issue: Stimulus file not found
-
-**Problem:** Error "Audio file not found: stimulus_1.wav"
-
-**Solution:**
-1. Check stimulus list file paths — are they absolute or relative?
-2. If relative, ensure you run `python slider_app.py` from the repo root
-3. Example: `measurement/Measurement_Lists/list_1.txt` should contain:
-   ```
-   audio/stimulus_1.wav
-   audio/stimulus_2.wav
-   ```
-
-### Issue: Config file errors
-
-**Problem:** Error "Failed to parse YAML file" or "SliderConfig validation failed"
-
-**Solution:**
-1. Check YAML syntax (indentation, colons, brackets)
-2. Verify all required fields: `name`, `min_val`, `max_val`, `init_val`, `step`, `marker_step`
-3. Use `python -c "import yaml; yaml.safe_load(open('config.yaml'))"` to validate YAML
-4. Example valid config:
-   ```yaml
-   name: my_scale
-   min_val: 1
-   max_val: 7
-   init_val: 4
-   step: 0.5
-   marker_step: 1
-   ```
-
-### Issue: Data not saved or wrong location
-
-**Problem:** JSON files not appearing in output directory after recording
-
-**Solution:**
-1. Check output directory path (default: `measurement/Results`)
-2. Ensure directory is writable: `mkdir -p measurement/Results`
-3. Check for errors in logs (terminal shows error messages)
-4. Default output: `output_dir/participant_id_stimulus_name.json`
-
-### Issue: "Stimulus list not found" or empty list
-
-**Problem:** SettingsScreen shows empty stimulus list or error
-
-**Solution:**
-1. Create the stimulus list directory:
-   ```bash
-   mkdir -p measurement/Measurement_Lists
-   ```
-2. Create a `.txt` file with audio filenames (one per line):
-   ```bash
-   echo "audio/test_1.wav
-   audio/test_2.wav" > measurement/Measurement_Lists/list_1.txt
-   ```
-3. Ensure audio files exist at the paths listed
-
----
-
-## File Structure
-
-```
-le_slider/
-├── slider_app.py              # Main application (entry point)
-├── calibrate.py               # Audio calibration utility
-├── requirements.txt           # Python dependencies
-│
-├── functions/                 # Core modules
-│   ├── session.py             # Session management (orchestration)
-│   ├── config.py              # Configuration system (YAML parsing)
-│   ├── i18n.py                # Localization (German/English)
-│   ├── sliders.py             # Slider abstraction & factory
-│   ├── data_io.py             # Recording & JSON export
-│   ├── data_schema.py          # JSON schema definition
-│   ├── audio_player.py        # Event-driven audio base class
-│   ├── utils_audio.py         # Audio implementation (sounddevice)
-│   ├── utils_gui.py           # UI components (NiceGUI dialogs)
-│   ├── utils_plot.py          # Visualization utilities
-│   ├── utils_stats.py         # Statistical functions
-│   └── utils_dataproc.py      # Data processing utilities
-│
-├── tools/                     # Utility scripts
-│   └── migrate_npz_to_json.py # Convert legacy NPZ to new JSON format
-│
-├── tests/                     # Unit tests (96 tests, 100% passing)
-│   ├── test_config.py
-│   ├── test_session.py
-│   ├── test_data_io.py
-│   ├── test_audio_player.py
-│   ├── test_i18n.py
-│   ├── test_migration.py
-│   └── test_slider_app_phase4.py
-│
-├── examples/                  # Example configuration files
-│   ├── config_listening_effort_de.yaml
-│   ├── config_listening_effort_en.yaml
-│   ├── config_speech_quality_en.yaml
-│   ├── config_noisiness_en.yaml
-│   └── session_config_de.yaml
-│
-├── measurement/              # Data directory (created by app)
-│   ├── Measurement_Lists/    # Stimulus list files
-│   │   └── list_1.txt
-│   └── Results/              # Output JSON recordings
-│       ├── VP001_stimulus_1.json
-│       ├── VP001_stimulus_2.json
-│       └── ...
-│
-├── demo/                      # Demo applications
-│   ├── show_slider_only.py
-│   └── make_realtime_profile_video.py
-│
-└── doc/                       # Documentation
-```
-
----
-
-## API Reference
-
-### Core Classes
-
-#### `SliderSession`
-Orchestrates participant workflow (stimulus management, recording, playback).
-
-```python
-session = SliderSession(
-    slider_config=config,          # SliderConfig instance
-    participant_id="VP001",        # Participant ID
-    stimulus_list_file="list.txt", # Stimulus list
-    output_dir="output/",          # Output directory
-    device_id=None,                # Audio device (None=auto)
-    blocksize=256,                 # Audio blocksize
-    buffersize=4,                  # Buffer size
-    language="de"                  # Language code
-)
-
-# Methods
-session.start_playback(stimulus_file)      # Start audio playback
-session.save_current_recording()           # Save to JSON
-session.next_stimulus()                    # Move to next
-session.stop_playback()                    # Stop audio
-session.get_current_stimulus()             # Current stimulus name
-session.has_next_stimulus()                # Check if more stimuli
-```
-
-#### `SliderConfig`
-Configuration for a rating slider.
-
-```python
-config = SliderConfig(
-    name="listening_effort",
-    min_val=1,
-    max_val=14,
-    init_val=7,
-    step=0.1,
-    marker_step=1,
-    categories_dict={1: "easy", 14: "hard"},
-    language="de"
-)
-
-config.validate()  # Validate consistency
-```
-
-#### `RatingRecorder`
-Records rating values during playback.
-
-```python
-recorder = RatingRecorder(
-    slider_config=config,
-    participant_id="VP001",
-    stimulus_file="audio.wav"
-)
-
-recorder.set_audio_metadata(...)
-recorder.add_frame(rating_value)
-recorder.save_to_json("output.json")
-```
-
-#### `LanguagePack`
-Localization support.
-
-```python
-i18n = LanguagePack(language="de")
-i18n.set_language("en")
-text = i18n.get("key.in.dict")  # Get localized string
-```
-
-### Utility Functions
-
-```python
-# Configuration I/O
-config = load_slider_config_from_yaml("config.yaml")
-save_slider_config_to_yaml(config, "new_config.yaml")
-
-# Data I/O
-migrate_npz_to_json(npz_file, output_json)  # Legacy data migration
-
-# Audio color feedback
-from functions.utils_gui import get_color_from_colormap
-color_rgb = get_color_from_colormap(value, min_val, max_val)
-```
-
----
-
-## Logging
-
-The application produces logs to help debug issues:
-
-**Enable debug logging** (in `slider_app.py`):
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-**Log files show:**
-- Config loading status
-- Session initialization
-- Audio device selection
-- Stimulus playback start/stop
-- Recording save operations
-- Errors and exceptions
-
-**Typical logs:**
-```
-2026-04-02 10:26:00,123 - functions.session - INFO - Initializing session for participant: VP001
-2026-04-02 10:26:00,456 - functions.config - INFO - Successfully loaded slider config: listening_effort
-2026-04-02 10:26:05,789 - functions.session - INFO - Starting playback: stimulus_1.wav
-2026-04-02 10:26:08,012 - functions.data_io - INFO - Saving recording to JSON: output/VP001_stimulus_1.json
-```
-
----
-
-## For Developers
-
-### Adding a New Rating Scale
-
-1. **Create config file** (`examples/config_my_scale.yaml`):
-   ```yaml
-   name: my_scale
-   min_val: 1
-   max_val: 10
-   init_val: 5
-   step: 0.5
-   marker_step: 1
-   categories:
-     1: "Not at all"
-     10: "Extremely"
-   language: en
-   ```
-
-2. **Update `slider_app.py`**:
-   ```python
-   DEFAULT_CONFIG_FILE = "examples/config_my_scale.yaml"
-   ```
-
-3. **Run and test**!
-
-### Adding a New Language
-
-1. **Edit `functions/i18n.py`** — Add translations to `_build_language_strings()`
-2. **Example:**
-   ```python
-   "fr": {
-       "dialog.start.ready": "Prêt à commencer?",
-       ...
-   }
-   ```
-3. **Update UI** to allow language selection in SettingsScreen
-
-### Running Tests
-
-```bash
-# All tests
-python -m pytest tests/ -v
-
-# Specific test file
-python -m pytest tests/test_config.py -v
-
-# With coverage
-python -m pytest tests/ --cov=functions
-```
-
-### Code Quality
-
-```bash
-# Check for linting issues
-python -m pylint functions/*.py
-
-# Type checking
-python -m mypy functions/*.py
-```
-
----
-
-## Citation
-
+# Citation
 If you use this toolbox in research, please cite:
-
 ```bibtex
-@software{le_slider_2026,
-  title={le_slider: Rating Collection Toolbox for Psychoacoustics},
-  author={User Name},
+@article{berdau2026blind,
+  title={A blind binaural real-time model for listening effort evaluated using continuous subjective listening effort rating},
+  author={Berdau, Martin and Padilla, Daniel-Jos{\'e} Alcala and Brand, Thomas and Rollwage, Christian and Rennies, Jan},
+  journal={Acta Acustica},
+  volume={10},
+  pages={11},
   year={2026},
-  url={https://github.com/user/le_slider}
+  publisher={EDP Sciences}
 }
 ```
-
----
-
-## Acknowledgements
-
-This project was created with the assistance of **GitHub Copilot** with **Claude Haiku 4.5** as the underlying language model. The development included:
-- Architecture design and modular system organization
-- Comprehensive test suite (96 unit tests)
-- Configuration system and YAML parsing
-- Session management and event-driven audio processing
-- Multi-language support (German/English)
-- Complete documentation and examples
-
----
-
-## License
-
-[Add your license information here]
-
----
-
-## Support & Feedback
-
-For issues, questions, or feature requests:
-1. Check the **Troubleshooting** section above
-2. Review example files in `examples/`
-3. Check test files for usage examples in `tests/`
-4. Examine log output for error details
-
----
-
-**Last Updated:** April 2, 2026
-**Version:** 1.0 (Phase 4 Complete)

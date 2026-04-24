@@ -79,7 +79,7 @@ class SettingsScreen(ui.dialog):
 
 class StartDialog(ui.dialog):
     def __init__(self):
-        """ Allowing the user to press 'Start' once ready, which executes e.g. audio playback"""
+        """Dialog allowing user to start audio playback once ready."""
         super().__init__()
         self.props('persistent')
 
@@ -91,17 +91,12 @@ class StartDialog(ui.dialog):
                 ui.button('Start', on_click=self.submit)
     
     def submit(self):
+        """Submit dialog and proceed to audio playback."""
         super().submit(True)
 
 class PostStimulusDialog(ui.dialog):
     def __init__(self):
-        """ Reminding the user to answer the questions after each chapter 
-        
-        Args:
-            chapter (int).  Current chapter, which will be refered to in the
-                            dialog. If value is 0, it will be assumed that
-                            the training chapter has been played back
-        """
+        """Dialog reminding user to answer questions after each stimulus."""
         super().__init__()
         self.props('persistent')
 
@@ -116,6 +111,7 @@ class PostStimulusDialog(ui.dialog):
                 ui.button('Weiter', on_click=self.submit)
     
     def submit(self):
+        """Submit dialog and proceed to next stimulus."""
         super().submit(True)
 
 class EndScreen(ui.dialog):
@@ -160,6 +156,23 @@ class RatingSlider(ui.column):
             background_alpha:float = 0.5,
             set_enabled_on_init:bool = False
             ):
+        """Initialize a rating slider UI component with customizable appearance and behavior.
+        
+        Args:
+            min_val: Minimum slider value
+            max_val: Maximum slider value
+            init_val: Initial slider value
+            step_width: Step size for slider increments
+            title: Title displayed above the slider
+            categories_dict: Dictionary mapping values to category labels
+            marker_step: Step size for slider markers
+            cmap_name: Matplotlib colormap name for background color
+            cmap_min: Minimum value for colormap range
+            cmap_max: Maximum value for colormap range
+            invert_cmap: Whether to invert the colormap
+            background_alpha: Alpha transparency for background color
+            set_enabled_on_init: Whether to enable slider on initialization
+        """
         super().__init__()
         self._min_val = min_val
         self._max_val = max_val
@@ -210,15 +223,23 @@ class RatingSlider(ui.column):
     
     @property
     def value(self):
+        """Get the current slider value."""
         return self.slider.value
     
     def enable(self):
+        """Enable the slider for user interaction."""
         self.slider.enable()
     
     def disable(self):
+        """Disable the slider to prevent user interaction."""
         self.slider.disable()
 
     def update_background_color(self, value: float):
+        """Update page background color based on slider value.
+        
+        Args:
+            value: Current slider value to map to color
+        """
         r, g, b = get_rbg_colors(
             cmap = self._cmap,
             value = value,
@@ -240,6 +261,21 @@ def get_rbg_colors(
         cmap_max: float,
         alpha: float,
         invert_cmap: bool = False):
+    """Map a value to RGB color using a matplotlib colormap.
+    
+    Args:
+        cmap: Matplotlib colormap to use
+        value: Value to map to color
+        min_val: Minimum value in range
+        max_val: Maximum value in range
+        cmap_min: Minimum colormap parameter
+        cmap_max: Maximum colormap parameter
+        alpha: Transparency alpha value (0-1)
+        invert_cmap: Whether to invert the colormap
+        
+    Returns:
+        Tuple of (R, G, B) color values (0-255)
+    """
     if invert_cmap:
         norm_val = (value - max_val) / (min_val - max_val)
     else:
