@@ -11,12 +11,12 @@ ___
     - [Before You Start](#before-you-start-)
         - [Required Hardware](#required-hardware-)
         - [Creating Measurement Lists](#creating-measurement-lists-)
-    - [Starting the App](#starting-the-app-)
+    - [Starting the App](#starting-the-app-️)
         - [Settings](#settings-)
         - [Assessment](#assessment-)
     - [Load Ratings](#load-ratings-)
 - [Customization](#customization)
-    - [Slider Configuration](#slider-configuration-)
+    - [Slider Configuration](#slider-configuration-️)
     - [Dialog Customization](#dialog-customization-)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -196,12 +196,27 @@ background_alpha: 0.33
 ```
 
 ## Dialog Customization 💬
-Customize instructions and dialog texts by editing [functions/gui.py](functions/gui.py). Each dialog class contains message strings:
-- **StartDialog**: Pre-stimulus instructions  
-- **PostStimulusDialog**: Post-stimulus reminders
-- **EndScreen**: Completion message
+Customize instructions and dialog texts by editing [config/dialogs.yaml](config/dialogs.yaml). This configuration file defines:
+- **start_dialog**: Pre-stimulus instructions and button label
+- **post_stimulus_dialog**: Post-stimulus reminders and button label  
+- **end_screen**: Completion message
 
-Modify these strings to translate the interface or customize instructions for your participants.
+Each dialog has a `text` field for the message and a `button` field for the button label. Modify these strings to translate the interface, customize instructions, or update text for your participants.
+
+### Example: Custom Dialog Texts
+```yaml
+dialogs:
+  start_dialog:
+    text: 'Click "Start" when ready to begin'
+    button: 'Start'
+  
+  post_stimulus_dialog:
+    text: 'Please complete the survey before continuing'
+    button: 'Next'
+  
+  end_screen:
+    text: 'Thank you for completing the assessment!'
+```
 
 ___
 

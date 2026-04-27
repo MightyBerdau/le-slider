@@ -2,6 +2,20 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 from nicegui import ui
 import sounddevice as sd
+import yaml
+from .config import DIALOGS_CONFIG_PATH
+
+
+def _load_dialogs_config():
+    """Load dialog text from dialogs.yaml configuration file."""
+    with open(DIALOGS_CONFIG_PATH, 'r', encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+    return config.get('dialogs', {})
+
+
+# Load dialog configuration once on module import
+_dialogs_config = _load_dialogs_config()
+
 
 class SettingsScreen(ui.dialog):
     def __init__(
@@ -83,12 +97,16 @@ class StartDialog(ui.dialog):
         super().__init__()
         self.props('persistent')
 
+        config = _dialogs_config.get('start_dialog', {})
+        text = config.get('text', 'Start')
+        button_label = config.get('button', 'Start')
+
         # Build the UI inside the dialog
         with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
             with ui.row().classes('w-full justify-center'):
-                ui.label('Drücken Sie "Start", wenn Sie die Kopfhörer aufgesetzt haben und bereit sind!')
+                ui.label(text)
             with ui.row().classes('w-full justify-center'):
-                ui.button('Start', on_click=self.submit)
+                ui.button(button_label, on_click=self.submit)
     
     def submit(self):
         """Submit dialog and proceed to audio playback."""
@@ -100,15 +118,16 @@ class PostStimulusDialog(ui.dialog):
         super().__init__()
         self.props('persistent')
 
+        config = _dialogs_config.get('post_stimulus_dialog', {})
+        text = config.get('text', 'Please answer the questionnaire.')
+        button_label = config.get('button', 'Next')
+
         # Build the UI inside the dialog
         with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
             with ui.row().classes('w-full justify-center'):
-                self.text_label = ui.label(
-                    'Bitte beantworten Sie die Fragen auf dem Fragebogen! '+\
-                    'Drücken Sie "Weiter", wenn Sie alle Fragen beantwortet haben!'
-                    )
+                self.text_label = ui.label(text)
             with ui.row().classes('w-full justify-center'):
-                ui.button('Weiter', on_click=self.submit)
+                ui.button(button_label, on_click=self.submit)
     
     def submit(self):
         """Submit dialog and proceed to next stimulus."""
@@ -120,9 +139,12 @@ class EndScreen(ui.dialog):
         super().__init__()
         self.props('persistent')
 
+        config = _dialogs_config.get('end_screen', {})
+        text = config.get('text', 'Experiment completed. Thank you for your participation!')
+
         with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
             with ui.row().classes('w-full justify-center'):
-                ui.label('Sie haben den Hörversuch abgeschlossen. Vielen Dank für Ihre Teilnahme!')
+                ui.label(text)
 
 class RatingSlider(ui.column):
     def __init__(

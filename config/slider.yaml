@@ -6,13 +6,13 @@
 # Language: Deutsch (German)
 # Scale: 1-14
 
-min_val: 1.0
-max_val: 14.0
-init_val: 7.0
-step_width: 0.1
+min_val: 1.0                        # Minimum slider value (bottom position)
+max_val: 14.0                       # Maximum slider value (top position)
+init_val: 7.0                       # Initial slider position (default value when dialog opens)
+step_width: 0.1                     # Minimum step size when adjusting the slider
 
-title: 'Listening Effort'
-categories_dict:
+title: 'Höranstrengung'             # Title displayed above the slider
+categories_dict:                    # Category labels mapped to slider values. Empty strings "" are unlabeled positions
   1: "mühelos"
   2: ""
   3: "sehr wenig anstrengend"
@@ -27,19 +27,10 @@ categories_dict:
   12: ""
   13: "extrem anstrengend"
   14: "nur Störgeräusch"
-marker_step: 1.0
+marker_step: 1.0                    # Vertical marker spacing (in value units) for slider orientation reference
 
-cmap_name: 'hsv'
-cmap_min: 0.03
-cmap_max: 0.33
-invert_cmap: true
-background_alpha: 0.5
-
-# better_at_high: false
-# slider_reversal: false
-# Category labels: only values with labels are shown
-
-
-# Color feedback: HSV hue range [0, 1]
-# (0.03, 0.3) = green → red
-# color_range_hsv: [0.03, 0.3]
+cmap_name: 'hsv'                    # Matplotlib colormap name used for slider background coloring
+cmap_min: 0.03                      # Colormap range start (0.0–1.0 scale). Lower values = cooler colors
+cmap_max: 0.33                      # Colormap range end (0.0–1.0 scale). Higher values = warmer colors
+invert_cmap: true                   # Reverse the colormap (warmer colors at lower values, cooler at higher)
+background_alpha: 0.5               # Slider background opacity (0.0 = transparent, 1.0 = fully opaque)

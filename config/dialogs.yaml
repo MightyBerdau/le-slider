@@ -1,0 +1,16 @@
+# Dialog Text Configuration (German)
+# 
+# This configuration defines all dialog text displayed in the slider application.
+# Language: Deutsch (German)
+
+dialogs:
+  start_dialog:
+    text: 'Drücken Sie "Start", wenn Sie die Kopfhörer aufgesetzt haben und bereit sind!'
+    button: 'Start'
+  
+  post_stimulus_dialog:
+    text: 'Bitte beantworten Sie die Fragen auf dem Fragebogen! Drücken Sie "Weiter", wenn Sie alle Fragen beantwortet haben!'
+    button: 'Weiter'
+  
+  end_screen:
+    text: 'Sie haben den Hörversuch abgeschlossen. Vielen Dank für Ihre Teilnahme!'
