@@ -1,274 +1,205 @@
 """
-Unit tests for audio player refactoring and event system.
+Unit tests for the audio player module.
 
-Tests RatingAudioPlayer abstract class, event emission, and audio backend integration.
+Tests AudioPlayer class functionality including initialization, properties,
+and callback behavior.
 """
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock
-from functions.audio_player import (
-    RatingAudioPlayer,
-    FrameEvent,
-    FrameEventType,
-    FrameEventListener,
-)
+import pytest
+import asyncio
+import numpy as np
+from unittest.mock import Mock, MagicMock, patch, call
+from functions.audio_player import AudioPlayer
 
 
-class MockAudioPlayer(RatingAudioPlayer):
-    """Mock implementation of RatingAudioPlayer for testing."""
-    
-    def __init__(self, device=None, blocksize=256, buffersize=4):
-        super().__init__(device=device, blocksize=blocksize, buffersize=buffersize)
-        self.play_called = False
-        self.played_file = None
-    
-    def play(self, filepath: str):
-        """Mock play implementation."""
-        self.play_called = True
-        self.played_file = filepath
-        
-        # Simulate a short playback
-        self._emit_playback_started()
-        
-        # Simulate 5 frames with device-accurate timing
-        # Simulating 256 sample blocks at 48kHz gives 5.33ms per frame
-        self._playback_start_time = 0.0  # Start at time 0
-        self.fs = 48000
-        for i in range(5):
-            # Calculate elapsed time (device time)
-            elapsed_sec = (i * self.blocksize) / 48000.0
-            # Emit frame event
-            event = FrameEvent(
-                event_type=FrameEventType.FRAME_RENDERED,
-                frame_index=i,
-                timestamp_sec=elapsed_sec,
-                blocksize=self.blocksize,
-                sample_rate=48000,
-            )
-            self._emit_frame_event(event)
-        
-        self._emit_playback_finished()
+@pytest.fixture
+def mock_slider():
+    """Create a mock RatingSlider."""
+    slider = Mock()
+    slider.value = 5.0
+    return slider
 
 
-class TestFrameEvent(unittest.TestCase):
-    """Test FrameEvent dataclass."""
-    
-    def test_create_frame_event(self):
-        """Test creating a frame event."""
-        event = FrameEvent(
-            event_type=FrameEventType.FRAME_RENDERED,
-            frame_index=10,
-            timestamp_sec=0.053,
-            blocksize=256,
-            sample_rate=48000,
-        )
-        
-        self.assertEqual(event.event_type, FrameEventType.FRAME_RENDERED)
-        self.assertEqual(event.frame_index, 10)
-        self.assertEqual(event.timestamp_sec, 0.053)
-        self.assertIsNone(event.error_message)
-    
-    def test_frame_event_with_error(self):
-        """Test frame event with error message."""
-        event = FrameEvent(
-            event_type=FrameEventType.ERROR,
-            frame_index=0,
-            timestamp_sec=0.0,
-            blocksize=0,
-            sample_rate=0,
-            error_message="Test error",
-        )
-        
-        self.assertEqual(event.error_message, "Test error")
+@pytest.fixture
+def audio_player(mock_slider):
+    """Create a test audio player instance."""
+    player = AudioPlayer(
+        rating_slider=mock_slider,
+        device_id=0,
+        blocksize=256
+    )
+    return player
 
 
-class TestRatingAudioPlayer(unittest.TestCase):
-    """Test RatingAudioPlayer abstract base class."""
-    
-    def setUp(self):
-        """Create test player instance."""
-        self.player = MockAudioPlayer(device=0, blocksize=256, buffersize=4)
-    
-    def test_initialization(self):
-        """Test player initialization."""
-        self.assertEqual(self.player.device, 0)
-        self.assertEqual(self.player.blocksize, 256)
-        self.assertEqual(self.player.buffersize, 4)
-        self.assertFalse(self.player.is_playing())
-    
-    def test_add_listener(self):
-        """Test adding event listeners."""
-        listener = Mock(spec=FrameEventListener)
-        
-        self.assertEqual(len(self.player._listeners), 0)
-        self.player.add_listener(listener)
-        self.assertEqual(len(self.player._listeners), 1)
-    
-    def test_add_duplicate_listener(self):
-        """Test that duplicate listeners are not added."""
-        listener = Mock(spec=FrameEventListener)
-        
-        self.player.add_listener(listener)
-        self.player.add_listener(listener)
-        
-        self.assertEqual(len(self.player._listeners), 1)
-    
-    def test_remove_listener(self):
-        """Test removing event listeners."""
-        listener = Mock(spec=FrameEventListener)
-        
-        self.player.add_listener(listener)
-        self.assertEqual(len(self.player._listeners), 1)
-        
-        self.player.remove_listener(listener)
-        self.assertEqual(len(self.player._listeners), 0)
-    
-    def test_emit_frame_event_to_listeners(self):
-        """Test that events are emitted to all listeners."""
-        listener1 = Mock(spec=FrameEventListener)
-        listener2 = Mock(spec=FrameEventListener)
-        
-        self.player.add_listener(listener1)
-        self.player.add_listener(listener2)
-        
-        event = FrameEvent(
-            event_type=FrameEventType.FRAME_RENDERED,
-            frame_index=0,
-            timestamp_sec=0.0,
-            blocksize=256,
-            sample_rate=48000,
-        )
-        
-        self.player._emit_frame_event(event)
-        
-        listener1.on_frame_event.assert_called_once_with(event)
-        listener2.on_frame_event.assert_called_once_with(event)
-    
-    def test_listener_exception_handling(self):
-        """Test that exceptions in listeners don't break event emission."""
-        listener_bad = Mock(spec=FrameEventListener)
-        listener_bad.on_frame_event.side_effect = Exception("Test error")
-        
-        listener_good = Mock(spec=FrameEventListener)
-        
-        self.player.add_listener(listener_bad)
-        self.player.add_listener(listener_good)
-        
-        event = FrameEvent(
-            event_type=FrameEventType.FRAME_RENDERED,
-            frame_index=0,
-            timestamp_sec=0.0,
-            blocksize=256,
-            sample_rate=48000,
-        )
-        
-        # Should not raise
-        self.player._emit_frame_event(event)
-        
-        # Good listener should still be called
-        listener_good.on_frame_event.assert_called_once()
+def test_audio_player_initialization(audio_player):
+    """Test AudioPlayer is initialized with correct parameters."""
+    assert audio_player.blocksize == 256
+    assert audio_player._device_id == 0
+    assert audio_player._slider is not None
 
 
-class TestPlaybackEvents(unittest.TestCase):
-    """Test playback event lifecycle."""
-    
-    def setUp(self):
-        """Create test player and listener."""
-        self.player = MockAudioPlayer()
-        self.listener = Mock(spec=FrameEventListener)
-        self.player.add_listener(self.listener)
-    
-    def test_playback_started_event(self):
-        """Test playback started event is emitted."""
-        self.player.play("dummy.wav")
-        
-        # Check that playback started event was emitted
-        calls = self.listener.on_frame_event.call_args_list
-        first_event = calls[0][0][0]
-        
-        self.assertEqual(first_event.event_type, FrameEventType.PLAYBACK_STARTED)
-    
-    def test_frame_events_emitted(self):
-        """Test that frame events are emitted during playback."""
-        self.player.play("dummy.wav")
-        
-        calls = self.listener.on_frame_event.call_args_list
-        frame_events = [
-            call[0][0] for call in calls
-            if call[0][0].event_type == FrameEventType.FRAME_RENDERED
-        ]
-        
-        # Mock player emits 5 frames
-        self.assertEqual(len(frame_events), 5)
-    
-    def test_frame_indices_increment(self):
-        """Test that frame indices increment correctly."""
-        self.player.play("dummy.wav")
-        
-        calls = self.listener.on_frame_event.call_args_list
-        frame_events = [
-            call[0][0] for call in calls
-            if call[0][0].event_type == FrameEventType.FRAME_RENDERED
-        ]
-        
-        for i, event in enumerate(frame_events):
-            self.assertEqual(event.frame_index, i)
-    
-    def test_timestamps_increment(self):
-        """Test that relative timestamps increment correctly."""
-        self.player.play("dummy.wav")
-        
-        calls = self.listener.on_frame_event.call_args_list
-        frame_events = [
-            call[0][0] for call in calls
-            if call[0][0].event_type == FrameEventType.FRAME_RENDERED
-        ]
-        
-        sample_rate = 48000
-        blocksize = 256
-        expected_interval = blocksize / sample_rate
-        
-        for i, event in enumerate(frame_events):
-            expected_time = i * expected_interval
-            self.assertAlmostEqual(event.timestamp_sec, expected_time, places=5)
-    
-    def test_playback_finished_event(self):
-        """Test playback finished event is emitted."""
-        self.player.play("dummy.wav")
-        
-        calls = self.listener.on_frame_event.call_args_list
-        events = [call[0][0] for call in calls]
-        
-        # Last event should be playback finished
-        last_event = events[-1]
-        self.assertEqual(last_event.event_type, FrameEventType.PLAYBACK_FINISHED)
+def test_audio_player_blocksize_property(audio_player):
+    """Test blocksize property."""
+    assert audio_player.blocksize == 256
 
 
-class TestPlaybackControl(unittest.TestCase):
-    """Test playback control methods."""
-    
-    def setUp(self):
-        """Create test player."""
-        self.player = MockAudioPlayer()
-    
-    def test_is_playing_flag(self):
-        """Test is_playing() flag during playback."""
-        self.assertFalse(self.player.is_playing())
-        
-        self.player.play("dummy.wav")
-        
-        # After playback completes, should be False
-        self.assertFalse(self.player.is_playing())
-    
-    def test_stop_signal(self):
-        """Test stop signal mechanism."""
-        self.assertFalse(self.player.should_stop())
-        
-        self.player.stop()
-        
-        self.assertTrue(self.player.should_stop())
+def test_audio_player_fs_property_initial(audio_player):
+    """Test fs property is None initially."""
+    assert audio_player.fs is None
 
 
+def test_audio_player_ratings_none_initially(audio_player):
+    """Test that ratings list is None until playback."""
+    assert audio_player.ratings is None
 
-if __name__ == '__main__':
-    unittest.main()
+
+def test_audio_player_audio_none_initially(audio_player):
+    """Test that audio data is None initially."""
+    assert audio_player._audio is None
+
+
+def test_audio_player_different_blocksizes():
+    """Test AudioPlayer with different blocksize values."""
+    mock_slider = Mock()
+    
+    for blocksize in [128, 256, 512, 1024]:
+        player = AudioPlayer(mock_slider, device_id=0, blocksize=blocksize)
+        assert player.blocksize == blocksize
+
+
+def test_audio_player_different_devices():
+    """Test AudioPlayer with different device IDs."""
+    mock_slider = Mock()
+    
+    for device_id in [0, 1, 2, -1]:
+        player = AudioPlayer(mock_slider, device_id=device_id, blocksize=256)
+        assert player._device_id == device_id
+
+
+def test_callback_collects_slider_values(audio_player, mock_slider):
+    """Test that _callback collects slider values."""
+    # Setup callback state
+    audio_player._audio = np.zeros((1000, 2))  # Stereo audio
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    # Mock slider values
+    mock_slider.value = 3.5
+    
+    # Create output buffer
+    outdata = np.zeros((256, 2))
+    
+    # Call callback
+    audio_player._callback(outdata, 256, None, None)
+    
+    # Should have recorded the slider value
+    assert len(audio_player.ratings) == 1
+    assert audio_player.ratings[0] == 3.5
+
+
+def test_callback_advances_index(audio_player):
+    """Test that _callback advances the audio index."""
+    audio_player._audio = np.zeros((1000, 2))
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    outdata = np.zeros((256, 2))
+    audio_player._callback(outdata, 256, None, None)
+    
+    # Index should advance by frames
+    assert audio_player._idx_start == 256
+
+
+def test_callback_signals_done_on_end(audio_player):
+    """Test that _callback signals done event when audio ends."""
+    # Audio is 256 samples, callback requests 512
+    audio_player._audio = np.zeros((256, 2))
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    outdata = np.zeros((512, 2))
+    audio_player._callback(outdata, 512, None, None)
+    
+    # Should have called done.set()
+    audio_player._loop.call_soon_threadsafe.assert_called_once()
+
+
+def test_callback_fills_remaining_with_zeros(audio_player):
+    """Test that callback pads with zeros when audio ends."""
+    # Audio is 256 samples, callback requests 512
+    audio_player._audio = np.ones((256, 2))  # Fill with ones
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    outdata = np.zeros((512, 2))
+    audio_player._callback(outdata, 512, None, None)
+    
+    # First 256 samples should be ones, rest should be zeros
+    assert np.all(outdata[:256] == 1)
+    assert np.all(outdata[256:] == 0)
+
+
+def test_audio_player_slider_integration(mock_slider):
+    """Test AudioPlayer correctly stores slider reference."""
+    player = AudioPlayer(mock_slider, device_id=1, blocksize=512)
+    assert player._slider is mock_slider
+
+
+def test_callback_with_multiple_channels(audio_player):
+    """Test callback handles multi-channel audio correctly."""
+    # Test with stereo (2 channels)
+    audio_player._audio = np.zeros((1000, 2))
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    outdata = np.zeros((256, 2))
+    audio_player._callback(outdata, 256, None, None)
+    
+    assert audio_player._idx_start == 256
+    assert len(audio_player.ratings) == 1
+
+
+def test_callback_with_mono_audio(audio_player):
+    """Test callback handles mono audio correctly."""
+    # Test with mono (1 channel)
+    audio_player._audio = np.zeros((1000, 1))
+    audio_player._fs = 48000
+    audio_player._idx_start = 0
+    audio_player.ratings = []
+    audio_player._done = MagicMock()
+    audio_player._loop = MagicMock()
+    
+    outdata = np.zeros((256, 1))
+    audio_player._callback(outdata, 256, None, None)
+    
+    assert audio_player._idx_start == 256
+
+
+@pytest.mark.parametrize("blocksize,device", [
+    (128, 0),
+    (256, 1),
+    (512, 0),
+    (1024, 2),
+])
+def test_audio_player_various_configs(blocksize, device):
+    """Test AudioPlayer with various configuration combinations."""
+    mock_slider = Mock()
+    player = AudioPlayer(mock_slider, device_id=device, blocksize=blocksize)
+    
+    assert player.blocksize == blocksize
+    assert player._device_id == device

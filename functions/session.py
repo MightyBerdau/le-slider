@@ -5,7 +5,7 @@ import yaml
 
 from .audio_player import AudioPlayer
 from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH
-from .data_io import RatingRecordingSchema
+from le_slider_io import RatingRecordingSchema
 from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider)
 from .utils import get_current_time
 
