@@ -20,6 +20,7 @@ ___
     - [Dialog Customization](#dialog-customization-)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
+- [License](#license)
 - [Acknowledgements](#acknowledgements)
 - [Citation](#citation)
 ___
@@ -224,6 +225,11 @@ No. Each participant needs their own computer to avoid audio conflicts and netwo
 
 **How do I change the interface language?**
 Edit text strings in [functions/gui.py](functions/gui.py) dialog classes, or modify categories in [config/slider.yaml](config/slider.yaml).
+___
+
+# License
+
+GNU General Public License v3.0 or later (GPLv3+)
 ___
 
 # Acknowledgements
