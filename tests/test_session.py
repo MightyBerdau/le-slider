@@ -10,8 +10,9 @@ import os
 import shutil
 import yaml
 import json
+from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch, call
-from functions.session import MeasurementSession
+from functions.session import MeasurementSession, MissingStimulisError
 from functions.config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH
 
 
@@ -266,3 +267,175 @@ def test_measurement_session_device_filtering(device_count, stereo_count):
         # Should filter to only stereo devices
         stereo_devices = [d for d in devices if d['max_output_channels'] == 2]
         assert len(session.valid_sounddevices) == len(stereo_devices)
+
+
+class TestSetupWithValidation:
+    """Test MeasurementSession.setup() with stimulus file validation."""
+    
+    @pytest.fixture
+    def temp_session_with_files(self):
+        """Create temp directory with valid stimulus files."""
+        temp_dir = tempfile.mkdtemp()
+        
+        # Create stimulus files
+        Path(os.path.join(temp_dir, "stimulus1.wav")).touch()
+        Path(os.path.join(temp_dir, "stimulus2.wav")).touch()
+        
+        # Create measurement list file with valid paths
+        list_path = os.path.join(temp_dir, "valid_list.txt")
+        with open(list_path, 'w') as f:
+            f.write("stimulus1.wav\n")
+            f.write("stimulus2.wav\n")
+        
+        yield temp_dir
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    @pytest.fixture
+    def temp_session_missing_files(self):
+        """Create temp directory with missing stimulus files in list."""
+        temp_dir = tempfile.mkdtemp()
+        
+        # Create measurement list file referencing non-existent files
+        list_path = os.path.join(temp_dir, "invalid_list.txt")
+        with open(list_path, 'w') as f:
+            f.write("missing1.wav\n")
+            f.write("missing2.wav\n")
+        
+        yield temp_dir
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    def test_setup_validates_stimulus_files_success(self, temp_session_with_files):
+        """Test setup() succeeds when all stimulus files exist."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
+                    # Should not raise exception
+                    session.setup(
+                        slider=mock_slider,
+                        participant_id="VP001",
+                        stimulus_list="valid_list.txt",
+                        device_id=0,
+                        blocksize=256
+                    )
+                    
+                    assert session._participant_id == "VP001"
+                    assert len(session._filepath_list) == 2
+    
+    def test_setup_raises_missing_stimulus_error(self, temp_session_missing_files):
+        """Test setup() raises MissingStimulisError when files don't exist."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
+                    with patch('functions.session.ErrorDialog') as mock_error_dialog:
+                        with pytest.raises(MissingStimulisError) as exc_info:
+                            session.setup(
+                                slider=mock_slider,
+                                participant_id="VP001",
+                                stimulus_list="invalid_list.txt",
+                                device_id=0,
+                                blocksize=256
+                            )
+                        
+                        # Verify the exception contains the missing files
+                        assert len(exc_info.value.missing_files) == 2
+                        assert "missing1.wav" in exc_info.value.missing_files
+                        assert "missing2.wav" in exc_info.value.missing_files
+    
+    def test_setup_calls_error_dialog_on_missing_files(self, temp_session_missing_files):
+        """Test setup() calls ErrorDialog when files are missing."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
+                    with patch('functions.session.ErrorDialog') as mock_error_dialog:
+                        mock_dialog_instance = MagicMock()
+                        mock_error_dialog.return_value = mock_dialog_instance
+                        
+                        with pytest.raises(MissingStimulisError):
+                            session.setup(
+                                slider=mock_slider,
+                                participant_id="VP001",
+                                stimulus_list="invalid_list.txt",
+                                device_id=0,
+                                blocksize=256
+                            )
+                        
+                        # Verify ErrorDialog was called
+                        mock_error_dialog.assert_called_once()
+                        # Verify open() was called on the dialog
+                        mock_dialog_instance.open.assert_called_once()
+    
+    def test_setup_does_not_call_error_dialog_on_success(self, temp_session_with_files):
+        """Test setup() does not call ErrorDialog when all files exist."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
+                    with patch('functions.session.ErrorDialog') as mock_error_dialog:
+                        session.setup(
+                            slider=mock_slider,
+                            participant_id="VP001",
+                            stimulus_list="valid_list.txt",
+                            device_id=0,
+                            blocksize=256
+                        )
+                        
+                        # ErrorDialog should not be called
+                        mock_error_dialog.assert_not_called()
+    
+    def test_setup_does_not_create_audio_player_on_validation_failure(self, temp_session_missing_files):
+        """Test setup() does not create AudioPlayer if validation fails."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
+                    with patch('functions.session.ErrorDialog'):
+                        with patch('functions.session.AudioPlayer') as mock_audio_player:
+                            with pytest.raises(MissingStimulisError):
+                                session.setup(
+                                    slider=mock_slider,
+                                    participant_id="VP001",
+                                    stimulus_list="invalid_list.txt",
+                                    device_id=0,
+                                    blocksize=256
+                                )
+                            
+                            # AudioPlayer should not be instantiated
+                            mock_audio_player.assert_not_called()
+                            assert session._audio_player is None
+    
+    def test_setup_creates_audio_player_on_validation_success(self, temp_session_with_files):
+        """Test setup() creates AudioPlayer when validation succeeds."""
+        with patch('functions.session.sd.query_devices', return_value=[]):
+            session = MeasurementSession()
+            mock_slider = Mock()
+            
+            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+                with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
+                    with patch('functions.session.AudioPlayer') as mock_audio_player_class:
+                        mock_audio_player = MagicMock()
+                        mock_audio_player_class.return_value = mock_audio_player
+                        
+                        session.setup(
+                            slider=mock_slider,
+                            participant_id="VP001",
+                            stimulus_list="valid_list.txt",
+                            device_id=0,
+                            blocksize=256
+                        )
+                        
+                        # AudioPlayer should be created
+                        mock_audio_player_class.assert_called_once_with(mock_slider, 0, 256)
+                        assert session._audio_player is mock_audio_player

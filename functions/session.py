@@ -6,8 +6,9 @@ import yaml
 from .audio_player import AudioPlayer
 from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH
 from le_slider_io import RatingRecordingSchema
-from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider)
-from .utils import get_current_time
+from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider, ErrorDialog)
+from .utils import get_current_time, validate_stimulus_files
+from .errors import MissingStimulisError
 
 class MeasurementSession:
     def __init__(self):
@@ -124,7 +125,11 @@ class MeasurementSession:
             stimulus_list:str,
             device_id:int,
             blocksize:int):
-        """Call this just before starting the session to implement the runtime arguments provided by the user"""
+        """Call this just before starting the session to implement the runtime arguments provided by the user.
+        
+        Raises:
+            MissingStimulisError: If any stimulus files referenced in the measurement list do not exist.
+        """
         self._slider = slider
         self._participant_id = participant_id
         self._stimulus_list = stimulus_list
@@ -133,6 +138,12 @@ class MeasurementSession:
 
         with open(os.path.join(STIMULUS_LISTS_PATH, self._stimulus_list), 'r', encoding='utf-8') as f:
             self._filepath_list = [line.strip() for line in f if line.strip()]
+
+        # Validate that all stimulus files exist before proceeding
+        is_valid, missing_files = validate_stimulus_files(self._filepath_list, os.getcwd())
+        if not is_valid:
+            ErrorDialog(missing_files).open()
+            raise MissingStimulisError(missing_files)
 
         self._audio_player = AudioPlayer(
                 self._slider,

@@ -17,6 +17,27 @@ def _load_dialogs_config():
 _dialogs_config = _load_dialogs_config()
 
 
+class ErrorDialog(ui.dialog):
+    """Dialog displaying missing stimulus files error."""
+    def __init__(self, missing_files: list[str]):
+        """Initialize error dialog with list of missing files.
+        
+        Args:
+            missing_files: List of missing stimulus file paths to display
+        """
+        super().__init__()
+        self.props('persistent')
+        
+        files_str = '\n'.join([f'  - {f}' for f in missing_files])
+        
+        with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
+            with ui.column().style('align-items: center; gap: 1em;'):
+                ui.label('⚠️ Measurement Setup Failed').style('font-size: 1.2em; font-weight: bold;')
+                ui.label(files_str).style('white-space: pre-wrap; color: #d32f2f; font-family: monospace;')
+                ui.label('Please verify the measurement list file and ensure all stimulus files exist.').style('color: #666;')
+                ui.button('OK', on_click=self.close).style('margin-top: 0.5em;')
+
+
 class SettingsScreen(ui.dialog):
     def __init__(
             self,
