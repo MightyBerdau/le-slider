@@ -7,7 +7,7 @@ from .audio_player import AudioPlayer
 from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH
 from le_slider_io import RatingRecordingSchema
 from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider, ErrorDialog)
-from .utils import get_current_time, validate_stimulus_files
+from .utils import get_current_time, validate_stimulus_files, get_stimulus_samplerates
 from .errors import MissingStimulisError
 
 class MeasurementSession:
@@ -25,6 +25,7 @@ class MeasurementSession:
         self._stimulus_list = None
         self._device_id = None
         self._blocksize = None
+        self._target_fs = None
 
         self._session_id = get_current_time()
 
@@ -124,9 +125,18 @@ class MeasurementSession:
             participant_id:int,
             stimulus_list:str,
             device_id:int,
-            blocksize:int):
+            blocksize:int,
+            fs:int):
         """Call this just before starting the session to implement the runtime arguments provided by the user.
         
+        Args:
+            slider: RatingSlider instance for user interactions
+            participant_id: Unique identifier for this measurement session
+            stimulus_list: Filename of stimulus list to use
+            device_id: Audio device ID for playback
+            blocksize: Audio buffer blocksize in samples
+            fs: Target sampling rate in Hz for all audio playback
+            
         Raises:
             MissingStimulisError: If any stimulus files referenced in the measurement list do not exist.
         """
@@ -135,6 +145,7 @@ class MeasurementSession:
         self._stimulus_list = stimulus_list
         self._device_id = device_id
         self._blocksize = blocksize
+        self._target_fs = fs
 
         with open(os.path.join(STIMULUS_LISTS_PATH, self._stimulus_list), 'r', encoding='utf-8') as f:
             self._filepath_list = [line.strip() for line in f if line.strip()]
@@ -145,10 +156,23 @@ class MeasurementSession:
             ErrorDialog(missing_files).open()
             raise MissingStimulisError(missing_files)
 
+        # Check sampling rates and warn about resampling
+        stimulus_fs_dict = get_stimulus_samplerates(self._filepath_list, os.getcwd())
+        files_to_resample = [fp for fp, file_fs in stimulus_fs_dict.items() if file_fs is not None and file_fs != self._target_fs]
+        
+        if files_to_resample:
+            print(f"\n⚠️  Resampling Notice:")
+            print(f"The following stimuli will be resampled to {self._target_fs} Hz:")
+            for fp in files_to_resample:
+                actual_fs = stimulus_fs_dict[fp]
+                print(f"  - {fp} ({actual_fs} Hz → {self._target_fs} Hz)")
+            print()
+
         self._audio_player = AudioPlayer(
                 self._slider,
                 self._device_id,
-                self._blocksize
+                self._blocksize,
+                self._target_fs
             )
 
     async def play_rec_and_time(self, stimulus_path):

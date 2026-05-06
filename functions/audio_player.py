@@ -1,6 +1,6 @@
 import asyncio
+import librosa
 import sounddevice as sd
-import soundfile as sf
 
 from .gui import RatingSlider
 
@@ -9,23 +9,25 @@ class AudioPlayer:
             self,
             rating_slider: RatingSlider,
             device_id: int,
-            blocksize: int):
+            blocksize: int,
+            target_fs: int):
         """Initialize AudioPlayer with audio device and rating slider.
         
         Args:
             rating_slider: RatingSlider instance for recording ratings
             device_id: Audio device index for playback
             blocksize: Audio buffer size in samples
+            target_fs: Target sampling rate in Hz for audio playback (librosa will resample if needed)
         """
         self._slider = rating_slider
         self._device_id = device_id
         self._blocksize = blocksize
+        self._target_fs = target_fs
 
         # Initialized in self.play_stimulus_and_record_ratings()
         self._idx_start = None # 0
         self.ratings = None # []
         self._audio = None
-        self._fs = None
         self._done = None # asyncio.Event()
         self._loop = None # asyncio.get_event_loop()
 
@@ -37,7 +39,7 @@ class AudioPlayer:
     @property
     def fs(self) -> int:
         """Get audio sampling frequency in Hz."""
-        return self._fs
+        return self._target_fs
 
     def _callback(self, outdata, frames, time, status):
         """Audio stream callback for playback and rating collection.
@@ -66,13 +68,17 @@ class AudioPlayer:
     async def play_stimulus_and_record_ratings(self, filepath: str):
         """Play audio stimulus and record slider ratings throughout playback.
         
+        Uses librosa to load and automatically resample audio to target sampling rate.
+        
         Args:
             filepath: Path to audio file to play
             
         Returns:
             List of slider ratings recorded during playback
         """
-        self._audio, self._fs = sf.read(filepath)
+        # Load audio with librosa, automatically resampling to target_fs
+        # librosa.load returns (channels, samples) for stereo (mono=False)
+        self._audio = librosa.load(filepath, sr=self._target_fs, mono=False)[0].T
         
         self._done = asyncio.Event()
         self._loop = asyncio.get_event_loop()
@@ -81,7 +87,7 @@ class AudioPlayer:
         
         with sd.OutputStream(
             callback=self._callback,
-            samplerate=self._fs,
+            samplerate=self._target_fs,
             channels=self._audio.shape[1],
             blocksize=self._blocksize,
             device=self._device_id,

@@ -1,5 +1,7 @@
 from datetime import datetime
 import os
+import sounddevice as sd
+import soundfile as sf
 
 def get_current_time():
     """Get the current time in ISO format with timezone.
@@ -38,3 +40,71 @@ def validate_stimulus_files(filepath_list: list[str], base_dir: str = None) -> t
     
     is_valid = len(missing_files) == 0
     return is_valid, missing_files
+
+
+def get_device_supported_samplerates(device_list) -> dict:
+    """Query supported sampling rates for each device.
+    
+    Uses sd.check_output_settings() to efficiently test which sampling rates
+    are supported by each device without opening actual audio streams.
+    
+    Args:
+        device_list: List of sounddevice device dictionaries (typically with max_output_channels >= 2)
+        
+    Returns:
+        Dictionary mapping device_id to list of supported sampling rates:
+        {device_id: [fs1, fs2, ...], device_id2: [fs1, ...], ...}
+        Rates are sorted in ascending order.
+    """
+    common_fs_to_test = [8000, 11025, 16000, 22050, 44100, 48000, 88200, 96000, 176400, 192000]
+    device_supported = {}
+    
+    for device in device_list:
+        device_id = device['index']
+        supported = []
+        
+        for fs in common_fs_to_test:
+            try:
+                # Check if this fs is supported without actually opening a stream
+                sd.check_output_settings(device=device_id, samplerate=fs, channels=2)
+                supported.append(fs)
+            except (sd.PortAudioError, ValueError):
+                # This fs is not supported by this device
+                continue
+        
+        device_supported[device_id] = sorted(supported)
+    
+    return device_supported
+
+
+def get_stimulus_samplerates(filepath_list: list[str], base_dir: str = None) -> dict:
+    """Get sampling rates for all stimulus files.
+    
+    Args:
+        filepath_list: List of stimulus file paths (absolute or relative)
+        base_dir: Base directory for resolving relative paths. If None, uses current working directory.
+        
+    Returns:
+        Dictionary mapping filepath to sampling rate:
+        {filepath: fs_value, ...}
+    """
+    if base_dir is None:
+        base_dir = os.getcwd()
+    
+    stimulus_fs = {}
+    
+    for filepath in filepath_list:
+        # Resolve full path
+        if os.path.isabs(filepath):
+            full_path = filepath
+        else:
+            full_path = os.path.join(base_dir, filepath)
+        
+        try:
+            info = sf.info(full_path)
+            stimulus_fs[filepath] = info.samplerate
+        except Exception as e:
+            # If we can't read the file, store None (will be caught later in validation)
+            stimulus_fs[filepath] = None
+    
+    return stimulus_fs

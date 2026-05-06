@@ -43,22 +43,23 @@ class SettingsScreen(ui.dialog):
             self,
             txt_file_list: list[str],
             device_list: sd.DeviceList,
-            # stimuli_lists_path: str = 'txt_lists_debugging',
+            device_supported_fs: dict,
             blocksize_init: int = 256,
             buffersize_init: int = 4):
         """ Settings dialog for experiment configuration.
         
         Args:
-            on_submit: Callback function on submit (receives all settings as kwargs)
-            initial_stimulus_list: Default stimulus list path
-            initial_output_dir: Default output directory
-            initial_blocksize: Default blocksize
-            initial_buffersize: Default buffersize
+            txt_file_list: List of available stimulus list filenames
+            device_list: List of available audio devices (with stereo output)
+            device_supported_fs: Dictionary mapping device_id to list of supported sampling rates
+            blocksize_init: Default blocksize
+            buffersize_init: Default buffersize
         """
         super().__init__()
         self.props('persistent')
         self.txt_file_list = txt_file_list
         self.device_list = device_list
+        self.device_supported_fs = device_supported_fs
         self.blocksize_init = blocksize_init
         self.buffersize_init = buffersize_init
 
@@ -85,13 +86,39 @@ class SettingsScreen(ui.dialog):
                     ui.label('No stimulus lists found in directory').classes('text-warning')
                 
                 if self.selection_list:
+                    # Create a reference to update_fs_options before creating dropdown_device
+                    def update_fs_options():
+                        selected_device_str = self.dropdown_device.value
+                        selected_device_id = self.idx_list[self.selection_list.index(selected_device_str)]
+                        new_fs_list = self.device_supported_fs.get(selected_device_id, [])
+                        new_fs_labels = [f'{fs} Hz' for fs in new_fs_list]
+                        
+                        self.dropdown_fs.set_options(new_fs_labels)
+                        if new_fs_labels:
+                            self.dropdown_fs.set_value(new_fs_labels[-1])  # Default to highest
+                    
+                    # Create device dropdown with on_value_change callback
                     self.dropdown_device = ui.select(
                         self.selection_list,
                         value=self.selection_list[self.idx_list.index(default_out)] if default_out is not None else self.selection_list[0],
-                        label='Audio Device'
+                        label='Audio Device',
+                        on_change=update_fs_options
+                    ).style('width: 100%;')
+                    
+                    # Sampling rate dropdown - initially populated with rates for default device
+                    default_device_id = default_out if default_out is not None else self.idx_list[0]
+                    default_fs_list = self.device_supported_fs.get(default_device_id, [])
+                    fs_labels = [f'{fs} Hz' for fs in default_fs_list]
+                    default_fs_label = fs_labels[-1] if fs_labels else ''  # Default to highest rate
+                    
+                    self.dropdown_fs = ui.select(
+                        fs_labels,
+                        value=default_fs_label,
+                        label='Sampling Rate (fs)'
                     ).style('width: 100%;')
                 else:
                     self.dropdown_device = None
+                    self.dropdown_fs = None
                     ui.label('No stereo output devices found').classes('text-warning')
                 
                 with ui.row():
@@ -104,10 +131,14 @@ class SettingsScreen(ui.dialog):
 
     def submit(self):
         """Collect settings and call on_submit callback."""
+        # Extract fs value from the label (e.g., "48000 Hz" -> 48000)
+        fs_value = int(self.dropdown_fs.value.split()[0]) if self.dropdown_fs and self.dropdown_fs.value else 48000
+        
         settings = {
             'participant_id': self.participant_id_field.value,
             'stimulus_list': self.dropdown_filelist.value,
             'device_id': self.idx_list[self.selection_list.index(self.dropdown_device.value)],
+            'fs': fs_value,
             'blocksize': int(self.blocksize_textfield.value or self.blocksize_init)
         }
         super().submit(settings)
