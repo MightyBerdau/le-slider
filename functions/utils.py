@@ -3,7 +3,7 @@ import os
 import sounddevice as sd
 import soundfile as sf
 
-def get_current_time():
+def get_current_time() -> str:
     """Get the current time in ISO format with timezone.
     
     Returns:

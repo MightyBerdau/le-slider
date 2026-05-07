@@ -52,7 +52,7 @@ class MeasurementSession:
         return self._measurement_lists
 
     @property
-    def valid_sounddevices(self):
+    def valid_sounddevices(self) -> list[dict]:
         """Get list of valid stereo output audio devices.
         
         Returns:
@@ -61,7 +61,15 @@ class MeasurementSession:
         return self._valid_sounddevices
 
     def _read_configs(self):
-        """Read all configuration files needed for the session."""
+        """Read all configuration files needed for the session.
+        
+        Currently reads the slider configuration from YAML file. This method
+        serves as the main orchestrator for configuration loading and can be
+        extended to load additional configuration files as needed.
+        
+        Called during __init__() to ensure all required configurations are
+        available before session setup.
+        """
         self._read_slider_config()
 
     def _read_slider_config(self):
@@ -175,7 +183,7 @@ class MeasurementSession:
                 self._target_fs
             )
 
-    async def play_rec_and_time(self, stimulus_path):
+    async def play_rec_and_time(self, stimulus_path) -> tuple[list[float], str, str]:
         """Play stimulus audio and record slider ratings with timestamps.
         
         Args:
@@ -194,8 +202,19 @@ class MeasurementSession:
         self._slider.disable()
         return ratings, stimulus_start, stimulus_end
 
-    async def run(self):
-        """Defines the general measurement routine"""
+    async def run(self) -> None:
+        """Execute the complete measurement session workflow.
+        
+        Iterates through all stimuli in the filepath_list, presenting dialogs
+        and collecting ratings for each stimulus. For each stimulus:
+        1. Opens StartDialog to prompt user to begin
+        2. Calls play_rec_and_time to play audio and collect ratings
+        3. Writes the recorded ratings to JSON file
+        4. Opens PostStimulusDialog between stimuli
+        
+        After all stimuli are processed, opens EndScreen to display completion.
+        This is an async method that must be awaited.
+        """
         for stimulus_path in self._filepath_list:
             await StartDialog()
             ratings, stimulus_start, stimulus_end = await self.play_rec_and_time(stimulus_path) 

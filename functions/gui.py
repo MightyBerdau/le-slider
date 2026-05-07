@@ -7,7 +7,16 @@ from .config import DIALOGS_CONFIG_PATH
 
 
 def _load_dialogs_config():
-    """Load dialog text from dialogs.yaml configuration file."""
+    """Load dialog text from dialogs.yaml configuration file.
+    
+    Reads the dialogs configuration file and extracts the 'dialogs' section
+    for use by GUI components like ErrorDialog, SettingsScreen, and other
+    dialog classes.
+    
+    Returns:
+        dict: Dictionary containing dialog configurations indexed by dialog type,
+              e.g. {'error_dialog': {...}, 'end_screen': {...}, etc.}
+    """
     with open(DIALOGS_CONFIG_PATH, 'r', encoding="utf-8") as file:
         config = yaml.safe_load(file)
     return config.get('dialogs', {})
@@ -44,6 +53,17 @@ class SettingsScreen(ui.dialog):
             device_list: sd.DeviceList,
             device_supported_fs: dict,
             blocksize_init: int = 256):
+        """Initialize a settings dialog for audio device configuration.
+        
+        Creates a persistent modal dialog allowing users to select audio output device,
+        sampling rate, and blocksize. This is the base class for measurement-specific
+        settings screens.
+        
+        Args:
+            device_list: List of available sound devices from sounddevice
+            device_supported_fs: Dictionary mapping device indices to their supported sampling rates
+            blocksize_init: Initial blocksize value in samples (default: 256)
+        """
         super().__init__()
         self.props('persistent')
         self.device_list = device_list
@@ -106,7 +126,12 @@ class SettingsScreen(ui.dialog):
             'blocksize': int(self.blocksize_textfield.value or self.blocksize_init)
         }
 
-    def submit(self):
+    def submit(self) -> None:
+        """Collect settings and close dialog.
+        
+        Gathers device, sampling rate, and blocksize settings from UI fields,
+        passes them to parent class submit handler, and closes the dialog.
+        """
         super().submit(self._collect_settings())
 
 
@@ -188,7 +213,14 @@ class PostStimulusDialog(ui.dialog):
 
 class EndScreen(ui.dialog):
     def __init__(self):
-        """ Small end screen for informing the user """
+        """Initialize the end screen dialog to display completion message.
+        
+        Creates a modal dialog that appears when the measurement session is
+        completed. The dialog displays a completion message from the dialogs
+        configuration file and is persistent (cannot be dismissed by clicking
+        outside the dialog). Used to inform the user that the experiment has
+        concluded and thank them for their participation.
+        """
         super().__init__()
         self.props('persistent')
 
@@ -297,7 +329,7 @@ class RatingSlider(ui.column):
             self.disable()
     
     @property
-    def value(self):
+    def value(self) -> float:
         """Get the current slider value."""
         return self.slider.value
     
@@ -335,7 +367,7 @@ def get_rbg_colors(
         cmap_min: float,
         cmap_max: float,
         alpha: float,
-        invert_cmap: bool = False):
+        invert_cmap: bool = False) -> tuple[int, int, int]:
     """Map a value to RGB color using a matplotlib colormap.
     
     Args:
