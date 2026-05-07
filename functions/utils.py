@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from pathlib import Path
 import sounddevice as sd
 import soundfile as sf
 
@@ -24,18 +25,18 @@ def validate_stimulus_files(filepath_list: list[str], base_dir: str = None) -> t
         - missing_files: List of missing file paths
     """
     if base_dir is None:
-        base_dir = os.getcwd()
+        base_dir = str(Path.cwd())
     
     missing_files = []
     
     for filepath in filepath_list:
         # Check if file exists as-is (for absolute paths or paths relative to cwd)
-        if os.path.isabs(filepath):
+        if Path(filepath).is_absolute():
             full_path = filepath
         else:
-            full_path = os.path.join(base_dir, filepath)
+            full_path = str(Path(base_dir) / filepath)
         
-        if not os.path.exists(full_path):
+        if not Path(full_path).exists():
             missing_files.append(filepath)
     
     is_valid = len(missing_files) == 0
@@ -89,16 +90,16 @@ def get_stimulus_samplerates(filepath_list: list[str], base_dir: str = None) -> 
         {filepath: fs_value, ...}
     """
     if base_dir is None:
-        base_dir = os.getcwd()
+        base_dir = str(Path.cwd())
     
     stimulus_fs = {}
     
     for filepath in filepath_list:
         # Resolve full path
-        if os.path.isabs(filepath):
+        if Path(filepath).is_absolute():
             full_path = filepath
         else:
-            full_path = os.path.join(base_dir, filepath)
+            full_path = str(Path(base_dir) / filepath)
         
         try:
             info = sf.info(full_path)

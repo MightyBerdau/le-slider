@@ -1,5 +1,6 @@
 
 import os
+from pathlib import Path
 import sounddevice as sd
 import yaml
 
@@ -86,7 +87,7 @@ class MeasurementSession:
         
         Filters for .txt files and sorts them alphabetically.
         """
-        measurement_lists_unsorted = [file for file in os.listdir(STIMULUS_LISTS_PATH) if '.txt' in file]
+        measurement_lists_unsorted = [file.name for file in STIMULUS_LISTS_PATH.glob('*.txt')]
         self._measurement_lists = sorted(measurement_lists_unsorted)
 
     def _read_valid_sounddevices(self):
@@ -121,11 +122,11 @@ class MeasurementSession:
             time_stamps=time_stamps
             )
         
-        stimulus_base = os.path.splitext(os.path.basename(stimulus_path))[0]
+        stimulus_base = Path(stimulus_path).stem
         filename = f"{self._participant_id}_{stimulus_base}.json"
-        filepath = os.path.join(RESULTS_PATH, filename)
+        filepath = RESULTS_PATH / filename
 
-        schema.to_json_file(filepath)
+        schema.to_json_file(str(filepath))
 
     def setup(
             self,
@@ -155,17 +156,17 @@ class MeasurementSession:
         self._blocksize = blocksize
         self._target_fs = fs
 
-        with open(os.path.join(STIMULUS_LISTS_PATH, self._stimulus_list), 'r', encoding='utf-8') as f:
+        with open(STIMULUS_LISTS_PATH / self._stimulus_list, 'r', encoding='utf-8') as f:
             self._filepath_list = [line.strip() for line in f if line.strip()]
 
         # Validate that all stimulus files exist before proceeding
-        is_valid, missing_files = validate_stimulus_files(self._filepath_list, os.getcwd())
+        is_valid, missing_files = validate_stimulus_files(self._filepath_list, str(Path.cwd()))
         if not is_valid:
             ErrorDialog(missing_files).open()
             raise MissingStimulisError(missing_files)
 
         # Check sampling rates and warn about resampling
-        stimulus_fs_dict = get_stimulus_samplerates(self._filepath_list, os.getcwd())
+        stimulus_fs_dict = get_stimulus_samplerates(self._filepath_list, str(Path.cwd()))
         files_to_resample = [fp for fp, file_fs in stimulus_fs_dict.items() if file_fs is not None and file_fs != self._target_fs]
         
         if files_to_resample:

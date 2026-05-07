@@ -87,12 +87,12 @@ def test_measurement_session_setup(temp_session_dir):
         mock_slider = Mock()
         
         # Create a test stimulus list file
-        list_path = os.path.join(temp_session_dir, "test_list.txt")
+        list_path = Path(temp_session_dir) / "test_list.txt"
         with open(list_path, 'w') as f:
             f.write("stimulus1.wav\n")
             f.write("stimulus2.wav\n")
         
-        with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_dir):
+        with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_dir)):
             # Simulate reading the file
             with open(list_path, 'r') as f:
                 filepaths = [line.strip() for line in f if line.strip()]
@@ -138,7 +138,7 @@ def test_measurement_session_write_recordings(temp_session_dir):
         stimulus_start = "2024-04-27T10:00:00+00:00"
         stimulus_end = "2024-04-27T10:00:05+00:00"
         
-        with patch('functions.session.RESULTS_PATH', temp_session_dir):
+        with patch('functions.session.RESULTS_PATH', Path(temp_session_dir)):
             with patch('functions.session.RatingRecordingSchema') as mock_schema_class:
                 mock_schema = Mock()
                 mock_schema_class.return_value = mock_schema
@@ -222,7 +222,7 @@ def test_write_recordings_calculates_timestamps(temp_session_dir):
         # Each block is 256/48000 = 0.00533 seconds
         ratings = [1.0, 2.0, 3.0, 4.0, 5.0]
         
-        with patch('functions.session.RESULTS_PATH', temp_session_dir):
+        with patch('functions.session.RESULTS_PATH', Path(temp_session_dir)):
             with patch('functions.session.RatingRecordingSchema') as mock_schema_class:
                 mock_schema = Mock()
                 mock_schema_class.return_value = mock_schema
@@ -278,11 +278,11 @@ class TestSetupWithValidation:
         temp_dir = tempfile.mkdtemp()
         
         # Create stimulus files
-        Path(os.path.join(temp_dir, "stimulus1.wav")).touch()
-        Path(os.path.join(temp_dir, "stimulus2.wav")).touch()
+        (Path(temp_dir) / "stimulus1.wav").touch()
+        (Path(temp_dir) / "stimulus2.wav").touch()
         
         # Create measurement list file with valid paths
-        list_path = os.path.join(temp_dir, "valid_list.txt")
+        list_path = Path(temp_dir) / "valid_list.txt"
         with open(list_path, 'w') as f:
             f.write("stimulus1.wav\n")
             f.write("stimulus2.wav\n")
@@ -296,7 +296,7 @@ class TestSetupWithValidation:
         temp_dir = tempfile.mkdtemp()
         
         # Create measurement list file referencing non-existent files
-        list_path = os.path.join(temp_dir, "invalid_list.txt")
+        list_path = Path(temp_dir) / "invalid_list.txt"
         with open(list_path, 'w') as f:
             f.write("missing1.wav\n")
             f.write("missing2.wav\n")
@@ -310,7 +310,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_with_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
                     # Should not raise exception
                     session.setup(
@@ -331,7 +331,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_missing_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
                     with patch('functions.session.ErrorDialog') as mock_error_dialog:
                         with pytest.raises(MissingStimulisError) as exc_info:
@@ -355,7 +355,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_missing_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
                     with patch('functions.session.ErrorDialog') as mock_error_dialog:
                         mock_dialog_instance = MagicMock()
@@ -382,7 +382,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_with_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
                     with patch('functions.session.ErrorDialog') as mock_error_dialog:
                         session.setup(
@@ -403,7 +403,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_missing_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_missing_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_missing_files):
                     with patch('functions.session.ErrorDialog'):
                         with patch('functions.session.AudioPlayer') as mock_audio_player:
@@ -427,7 +427,7 @@ class TestSetupWithValidation:
             session = MeasurementSession()
             mock_slider = Mock()
             
-            with patch('functions.session.STIMULUS_LISTS_PATH', temp_session_with_files):
+            with patch('functions.session.STIMULUS_LISTS_PATH', Path(temp_session_with_files)):
                 with patch('functions.session.os.getcwd', return_value=temp_session_with_files):
                     with patch('functions.session.AudioPlayer') as mock_audio_player_class:
                         mock_audio_player = MagicMock()

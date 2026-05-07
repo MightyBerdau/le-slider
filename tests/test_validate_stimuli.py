@@ -24,10 +24,10 @@ class TestValidateStimulusFiles:
         temp_dir = tempfile.mkdtemp()
         
         # Create some test audio files
-        Path(os.path.join(temp_dir, "stimulus1.wav")).touch()
-        Path(os.path.join(temp_dir, "stimulus2.wav")).touch()
-        Path(os.path.join(temp_dir, "audio_dir")).mkdir()
-        Path(os.path.join(temp_dir, "audio_dir", "stimulus3.wav")).touch()
+        (Path(temp_dir) / "stimulus1.wav").touch()
+        (Path(temp_dir) / "stimulus2.wav").touch()
+        (Path(temp_dir) / "audio_dir").mkdir()
+        (Path(temp_dir) / "audio_dir" / "stimulus3.wav").touch()
         
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -84,7 +84,7 @@ class TestValidateStimulusFiles:
     
     def test_validate_absolute_paths(self, temp_dir_with_files):
         """Test validation with absolute file paths."""
-        absolute_path = os.path.join(temp_dir_with_files, "stimulus1.wav")
+        absolute_path = str(Path(temp_dir_with_files) / "stimulus1.wav")
         filepaths = [absolute_path]
         
         is_valid, missing = validate_stimulus_files(filepaths, temp_dir_with_files)
@@ -94,7 +94,7 @@ class TestValidateStimulusFiles:
     
     def test_validate_absolute_paths_missing(self, temp_dir_with_files):
         """Test validation detects missing absolute path files."""
-        fake_absolute = os.path.join(temp_dir_with_files, "fake.wav")
+        fake_absolute = str(Path(temp_dir_with_files) / "fake.wav")
         filepaths = [fake_absolute]
         
         is_valid, missing = validate_stimulus_files(filepaths, temp_dir_with_files)
@@ -151,7 +151,7 @@ class TestValidateStimulusFiles:
         assert "missing/path/file.wav" in missing
         assert "another_missing.wav" in missing
         # Original paths should be preserved, not converted to absolute
-        assert not any(os.path.isabs(path) for path in missing)
+        assert not any(Path(path).is_absolute() for path in missing)
 
 
 class TestMissingStimulisError:
@@ -255,16 +255,16 @@ class TestValidationIntegration:
         temp_dir = tempfile.mkdtemp()
         
         # Create stimulus directory and files
-        stimulus_dir = os.path.join(temp_dir, "stimuli")
-        os.makedirs(stimulus_dir)
-        Path(os.path.join(stimulus_dir, "valid_stimulus.wav")).touch()
+        stimulus_dir = Path(temp_dir) / "stimuli"
+        stimulus_dir.mkdir()
+        (stimulus_dir / "valid_stimulus.wav").touch()
         
         # Create measurement list file
-        list_file = os.path.join(temp_dir, "valid_list.txt")
+        list_file = Path(temp_dir) / "valid_list.txt"
         with open(list_file, 'w') as f:
             f.write("stimuli/valid_stimulus.wav\n")
         
-        list_file_missing = os.path.join(temp_dir, "invalid_list.txt")
+        list_file_missing = Path(temp_dir) / "invalid_list.txt"
         with open(list_file_missing, 'w') as f:
             f.write("stimuli/missing_stimulus.wav\n")
         

@@ -126,7 +126,7 @@ class TestGetStimulusSamplerates:
         """Test that function returns dictionary."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a test wav file
-            filepath = os.path.join(tmpdir, "test.wav")
+            filepath = str(Path(tmpdir) / "test.wav")
             data = np.random.rand(100).astype(np.float32)
             sf.write(filepath, data, 48000)
             
@@ -138,7 +138,7 @@ class TestGetStimulusSamplerates:
         """Test with single stimulus file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a test wav file at 48 kHz
-            filepath = os.path.join(tmpdir, "test.wav")
+            filepath = str(Path(tmpdir) / "test.wav")
             data = np.random.rand(100).astype(np.float32)
             target_fs = 48000
             sf.write(filepath, data, target_fs)
@@ -160,7 +160,7 @@ class TestGetStimulusSamplerates:
             ]
             
             for filename, fs in files_rates:
-                filepath = os.path.join(tmpdir, filename)
+                filepath = str(Path(tmpdir) / filename)
                 data = np.random.rand(100).astype(np.float32)
                 sf.write(filepath, data, fs)
             
@@ -175,11 +175,11 @@ class TestGetStimulusSamplerates:
     def test_get_stimulus_samplerates_uses_base_dir(self):
         """Test that base_dir parameter is used correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            subdir = os.path.join(tmpdir, "subdir")
-            os.makedirs(subdir)
+            subdir = str(Path(tmpdir) / "subdir")
+            Path(subdir).mkdir()
             
             # Create file in subdirectory
-            filepath = os.path.join(subdir, "test.wav")
+            filepath = str(Path(subdir) / "test.wav")
             data = np.random.rand(100).astype(np.float32)
             sf.write(filepath, data, 48000)
             
@@ -193,7 +193,7 @@ class TestGetStimulusSamplerates:
         """Test with absolute file path."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create file with absolute path
-            filepath = os.path.join(tmpdir, "test.wav")
+            filepath = str(Path(tmpdir) / "test.wav")
             data = np.random.rand(100).astype(np.float32)
             sf.write(filepath, data, 48000)
             
@@ -220,7 +220,7 @@ class TestGetStimulusSamplerates:
         """Test that function uses current directory if base_dir is None."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a file
-            filepath = os.path.join(tmpdir, "test.wav")
+            filepath = str(Path(tmpdir) / "test.wav")
             data = np.random.rand(100).astype(np.float32)
             sf.write(filepath, data, 48000)
             
