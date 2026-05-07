@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from functions.gui import RatingSlider, SettingsScreen
+from functions.gui import RatingSlider, SettingsScreenMeasurement
 from functions.network import get_local_ip
 from functions.session import MeasurementSession
 from functions.utils import get_device_supported_samplerates
@@ -13,7 +13,7 @@ async def run_measurement():
     session = MeasurementSession() # Manages measurement procedure
     slider = RatingSlider(**session.slider_config) # GUI element for continuous user rating
     device_supported_fs = get_device_supported_samplerates(session.valid_sounddevices)
-    runtime_settings = await SettingsScreen(
+    runtime_settings = await SettingsScreenMeasurement(
         session.measurement_lists,
         session.valid_sounddevices,
         device_supported_fs
