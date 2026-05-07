@@ -105,7 +105,7 @@ def test_measurement_session_setup(temp_session_dir):
             session._filepath_list = filepaths
             
             from functions.audio_player import AudioPlayer
-            session._audio_player = AudioPlayer(mock_slider, 0, 256)
+            session._audio_player = AudioPlayer(mock_slider, 0, 256, 48000)
             
             assert session._participant_id == "VP001"
             assert session._device_id == 0
@@ -318,7 +318,8 @@ class TestSetupWithValidation:
                         participant_id="VP001",
                         stimulus_list="valid_list.txt",
                         device_id=0,
-                        blocksize=256
+                        blocksize=256,
+                        fs=48000
                     )
                     
                     assert session._participant_id == "VP001"
@@ -339,7 +340,8 @@ class TestSetupWithValidation:
                                 participant_id="VP001",
                                 stimulus_list="invalid_list.txt",
                                 device_id=0,
-                                blocksize=256
+                                blocksize=256,
+                                fs=48000
                             )
                         
                         # Verify the exception contains the missing files
@@ -365,7 +367,8 @@ class TestSetupWithValidation:
                                 participant_id="VP001",
                                 stimulus_list="invalid_list.txt",
                                 device_id=0,
-                                blocksize=256
+                                blocksize=256,
+                                fs=48000
                             )
                         
                         # Verify ErrorDialog was called
@@ -387,7 +390,8 @@ class TestSetupWithValidation:
                             participant_id="VP001",
                             stimulus_list="valid_list.txt",
                             device_id=0,
-                            blocksize=256
+                            blocksize=256,
+                            fs=48000
                         )
                         
                         # ErrorDialog should not be called
@@ -409,7 +413,8 @@ class TestSetupWithValidation:
                                     participant_id="VP001",
                                     stimulus_list="invalid_list.txt",
                                     device_id=0,
-                                    blocksize=256
+                                    blocksize=256,
+                                    fs=48000
                                 )
                             
                             # AudioPlayer should not be instantiated
@@ -433,9 +438,10 @@ class TestSetupWithValidation:
                             participant_id="VP001",
                             stimulus_list="valid_list.txt",
                             device_id=0,
-                            blocksize=256
+                            blocksize=256,
+                            fs=48000
                         )
                         
                         # AudioPlayer should be created
-                        mock_audio_player_class.assert_called_once_with(mock_slider, 0, 256)
+                        mock_audio_player_class.assert_called_once_with(mock_slider, 0, 256, 48000)
                         assert session._audio_player is mock_audio_player

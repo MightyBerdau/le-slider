@@ -26,7 +26,8 @@ def audio_player(mock_slider):
     player = AudioPlayer(
         rating_slider=mock_slider,
         device_id=0,
-        blocksize=256
+        blocksize=256,
+        target_fs=48000
     )
     return player
 
@@ -44,8 +45,8 @@ def test_audio_player_blocksize_property(audio_player):
 
 
 def test_audio_player_fs_property_initial(audio_player):
-    """Test fs property is None initially."""
-    assert audio_player.fs is None
+    """Test fs property returns target_fs."""
+    assert audio_player.fs == 48000
 
 
 def test_audio_player_ratings_none_initially(audio_player):
@@ -63,7 +64,7 @@ def test_audio_player_different_blocksizes():
     mock_slider = Mock()
     
     for blocksize in [128, 256, 512, 1024]:
-        player = AudioPlayer(mock_slider, device_id=0, blocksize=blocksize)
+        player = AudioPlayer(mock_slider, device_id=0, blocksize=blocksize, target_fs=48000)
         assert player.blocksize == blocksize
 
 
@@ -72,7 +73,7 @@ def test_audio_player_different_devices():
     mock_slider = Mock()
     
     for device_id in [0, 1, 2, -1]:
-        player = AudioPlayer(mock_slider, device_id=device_id, blocksize=256)
+        player = AudioPlayer(mock_slider, device_id=device_id, blocksize=256, target_fs=48000)
         assert player._device_id == device_id
 
 
@@ -153,7 +154,7 @@ def test_callback_fills_remaining_with_zeros(audio_player):
 
 def test_audio_player_slider_integration(mock_slider):
     """Test AudioPlayer correctly stores slider reference."""
-    player = AudioPlayer(mock_slider, device_id=1, blocksize=512)
+    player = AudioPlayer(mock_slider, device_id=1, blocksize=512, target_fs=48000)
     assert player._slider is mock_slider
 
 
@@ -199,7 +200,7 @@ def test_callback_with_mono_audio(audio_player):
 def test_audio_player_various_configs(blocksize, device):
     """Test AudioPlayer with various configuration combinations."""
     mock_slider = Mock()
-    player = AudioPlayer(mock_slider, device_id=device, blocksize=blocksize)
+    player = AudioPlayer(mock_slider, device_id=device, blocksize=blocksize, target_fs=48000)
     
     assert player.blocksize == blocksize
     assert player._device_id == device
