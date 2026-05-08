@@ -5,11 +5,11 @@ import sounddevice as sd
 import yaml
 
 from .audio_player import AudioPlayer
-from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH
-from le_slider_io import RatingRecordingSchema
+from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH, CALIB_CONFIG_PATH
+from le_slider_io import RatingRecordingSchema, CalibrationSchema
 from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider, ErrorDialog)
 from .utils import get_current_time, validate_stimulus_files, get_stimulus_samplerates
-from .errors import MissingStimulisError
+from .errors import MissingStimulisError, MissingCalibrationFileError
 
 class MeasurementSession:
     def __init__(self):
@@ -27,6 +27,7 @@ class MeasurementSession:
         self._device_id = None
         self._blocksize = None
         self._target_fs = None
+        self._calib_gain = None
 
         self._session_id = get_current_time()
 
@@ -72,6 +73,7 @@ class MeasurementSession:
         available before session setup.
         """
         self._read_slider_config()
+        self._load_calibration()
 
     def _read_slider_config(self):
         """Read slider configuration from YAML file.
@@ -81,6 +83,25 @@ class MeasurementSession:
         with open(SLIDER_CONFIG_PATH, 'r', encoding="utf-8") as file:
             slider_config = yaml.safe_load(file)
         self._slider_config = slider_config
+
+    def _load_calibration(self):
+        """Load calibration gain from config/calibration.json.
+
+        Raises:
+            MissingCalibrationFileError: If calibration.json does not exist.
+        """
+        try:
+            schema = CalibrationSchema.from_json_file(CALIB_CONFIG_PATH)
+        except FileNotFoundError:
+            raise MissingCalibrationFileError()
+
+        self._calib_gain = schema.gain_calib
+        print(
+            f"\n🎚️  Calibration loaded:"
+            f"\n   Timestamp : {schema.session_id}"
+            f"\n   Gain L    : {self._calib_gain[0]:.4f}"
+            f"\n   Gain R    : {self._calib_gain[1]:.4f}\n"
+        )
 
     def _read_measurement_lists(self):
         """Read stimulus list filenames from directory.
@@ -181,7 +202,8 @@ class MeasurementSession:
                 self._slider,
                 self._device_id,
                 self._blocksize,
-                self._target_fs
+                self._target_fs,
+                calib_gain=self._calib_gain
             )
 
     async def play_rec_and_time(self, stimulus_path) -> tuple[list[float], str, str]:

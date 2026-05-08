@@ -11,6 +11,7 @@ ___
     - [Before You Start](#before-you-start-)
         - [Required Hardware](#required-hardware-)
         - [Creating Measurement Lists](#creating-measurement-lists-)
+        - [Calibration](#calibration-️)
     - [Starting the App](#starting-the-app-️)
         - [Settings](#settings-)
         - [Assessment](#assessment-)
@@ -102,6 +103,52 @@ C:/Users/username/Desktop/awesome_stimuli/stimulus2.wav
 **Filenames have to be unique, because the results will be saved with the same base name as the audio file!**
 Note that it can be absolute or relative paths, but using absolute ones might be less error prone.
 Files are played back in the measurement in the order from top to bottom.
+
+### Calibration 🎛️
+Calibration ensures that stimuli are presented at a defined Sound Pressure Level (SPL) at the listener's ears. The procedure measures the actual playback level and stores a per-channel correction gain that is automatically applied to all stimuli during the measurement.
+
+#### Setup
+
+Place exactly one `.wav` calibration signal (e.g., speech-shaped noise) in the `calib/` directory:
+
+```
+calib/
+└── SSN.wav        ← any name, first .wav found is used
+```
+
+A speech-shaped noise signal is recommended because its long-term spectrum matches that of typical speech stimuli, giving a representative calibration level.
+
+#### Running the Calibration
+
+```bash
+python calibrate.py
+```
+
+1. Select your audio device and blocksize in the settings dialog, then click **Submit**
+2. Click **Start** to begin looped playback of the calibration signal through the headphones
+3. Measure sound pressure level of the headphones (left/right) and note the measured SPL
+4. Click **Stop** to end playback
+5. Enter the measured SPL for the **left ear** and **right ear** separately
+6. Enter the **desired target SPL** (the level at which you want stimuli to be presented)
+7. Click **Save Calibration**
+
+The calibration result is saved to `config/calibration.json` and loaded automatically when `slider_app.py` starts. If no calibration file is found, the measurement will refuse to start.
+
+#### How It Works
+
+For each ear independently, the calibration gain is:
+
+$$g = 10^{(SPL_\text{desired} - SPL_\text{measured}) / 20}$$
+
+This linear amplitude gain is multiplied into the audio signal for that channel before playback, so the stimulus reaches the participant's ear at the target SPL regardless of the playback chain's characteristics.
+
+| Field | Description |
+|---|---|
+| Measured SPL — Left (dB) | SPL reading from the sound level meter at the left ear |
+| Measured SPL — Right (dB) | SPL reading from the sound level meter at the right ear |
+| Desired SPL (dB) | Target presentation level for both ears |
+
+> ⚠️ **Recalibrate** whenever you change the audio device, the headphones, or the volume setting of the sound card.
 
 ---
 
