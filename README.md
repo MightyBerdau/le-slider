@@ -95,20 +95,18 @@ You will at least need **headphones** and a **sound device** that has a **minimu
 For using a **smartphone** to control the slider interface, you will need a **local network**. You can use a WiFi router or create a smartphone hotspot. The computer running the code and the smartphone must be **on the same network**. **Important:** Corporate or institutional networks (e.g., university WiFi) may block the required ports or allow other users to interfere with your connection. A dedicated personal network is strongly recommended for reliable operation.
 
 ### Customizable Paths 📂
-By default, the application looks for measurement lists in the `measurement_lists/` directory and writes results to the `results/` directory. You can customize these paths by editing [config/paths.yaml](config/paths.yaml) without changing any code:
+By default, the application looks for measurement lists in the `measurement_lists/` directory and writes results to the `results/` directory. Calibration JSON files are automatically discovered from the `calib/` directory. You can customize these paths by editing [config/paths.yaml](config/paths.yaml):
 
 ```yaml
-measurement_lists: 'measurement_lists/'   # Directory containing stimulus list files
-results: 'results/'                       # Directory for saving ratings
-calibration_filepath: 'calib_noise.wav'   # Path to calibration signal file
+measurement_lists: 'measurement_lists/'       # Directory containing stimulus list files
+results: 'results/'                           # Directory for saving ratings
+calibration_filepath: 'path/to/calib_noise.wav'   # Path to calibration signal file
 ```
 
-**⚠️ Important:** You **must** update the `calibration_filepath` to point to your actual calibration audio file. The default path won't work; replace it with the absolute or relative path to your speech-shaped noise or other calibration signal. Example:
+**⚠️ Important:** You **must** update the `calibration_filepath` to point to your actual calibration audio file (e.g., speech-shaped noise). The calibration script reads this file. Replace it with the absolute or relative path to your calibration signal:
 ```yaml
 calibration_filepath: 'C:/path/to/your/calib_noise.wav'
 ```
-
-If the calibration file path is not configured correctly, the application will refuse to start.
 
 ### Creating Measurement Lists 📋
 A measurement list defines the order of any number of stimuli to be used for the continuous assessment. You can create any number of measurement lists to the `measurement_lists` directory. A measurement list must be a `.txt` file, where every line contains a filepath, like for example:
@@ -122,34 +120,54 @@ Note that it can be absolute or relative paths, but using absolute ones might be
 Files are played back in the measurement in the order from top to bottom.
 
 ### Calibration 🎛️
-Calibration ensures that stimuli are presented at a defined Sound Pressure Level (SPL) at the listener's ears. The procedure measures the actual playback level and stores a per-channel correction gain that is automatically applied to all stimuli during the measurement.
+Calibration ensures that stimuli are presented at a defined Sound Pressure Level (SPL) at the listener's ears. The procedure measures the actual playback level and stores per-channel correction gains that are automatically applied to all stimuli during measurement.
 
 #### Setup
 
-Place exactly one `.wav` calibration signal (e.g., speech-shaped noise) in the `calib/` directory:
+Point to your calibration signal file (e.g., speech-shaped noise) by setting `calibration_filepath` in [config/paths.yaml](config/paths.yaml):
 
+```yaml
+calibration_filepath: 'C:/path/to/your/calib_noise.wav'
 ```
-calib/
-└── calib_noise.wav        ← any name, first .wav found is used
-```
 
-A speech-shaped noise signal is recommended because its long-term spectrum matches that of typical speech stimuli, giving a representative calibration level.  
+A speech-shaped noise signal is recommended because its long-term spectrum matches that of typical speech stimuli, giving a representative calibration level.
 
-
-#### Running the Calibration
+#### Running Calibration
 
 ```bash
 python calibrate.py
 ```
 
-1. Select your audio device and blocksize in the settings dialog, then click **Submit**
-2. Click **Start** to begin looped playback of the calibration signal through the headphones (click same button again to end playback; should say **Stop** while audio is playing...)
-3. Measure sound pressure level of the headphones (left/right) and note the measured SPL
-4. Enter the measured SPL for the **left ear** and **right ear** separately
-5. Enter the **desired target SPL** (the level at which you want stimuli to be presented at both ears)
-6. Click **Save Calibration**
+1. **Select audio device**: Choose the audio interface you'll use for the measurement
+2. **Select blocksize**: Choose appropriate buffer size (512-2048 samples)
+3. Click **Submit** to proceed
+4. Click **Start** to begin looped playback of the calibration signal through headphones
+5. Measure sound pressure level (SPL) at both ears using a sound level meter
+6. Enter measured SPL for **left ear** and **right ear** separately  
+7. Enter **desired target SPL** (presentation level for stimuli)
+8. Click **Save Calibration**
 
-The calibration result is saved to `config/calibration.json` and loaded automatically when `slider_app.py` starts. If no calibration file is found, the measurement will refuse to start.
+#### Multi-Calibration Support
+
+Each calibration is automatically saved with a **unique timestamp** and **device metadata** to the `calib/` directory as a JSON file:
+```
+calib/
+├── calib_2026-05-28T13-26-08.json     ← Realtek Audio, 48 kHz
+├── calib_2026-05-28T15-30-43.json     ← USB Headset, 44.1 kHz
+└── calib_2026-05-29T10-15-22.json     ← Realtek Audio, 44.1 kHz
+```
+
+This allows you to:
+- **Calibrate different audio devices** without re-running measurements
+- **Switch calibrations** during measurement setup based on available hardware
+- **Maintain a history** of all calibrations performed
+
+**Each calibration file stores:**
+- Audio device ID and name
+- Sampling rate (fs)
+- SPL measurements (left/right/desired)
+- Calibration gains for each channel
+- Session ID for traceability
 
 #### How It Works
 
@@ -165,7 +183,7 @@ This linear amplitude gain is multiplied into the audio signal for that channel 
 | Measured SPL — Right (dB) | SPL reading from the sound level meter at the right ear |
 | Desired SPL (dB) | Target presentation level for both ears |
 
-> ⚠️ **Recalibrate** whenever you change the audio device, the headphones, or the volume setting of the sound card.
+> ⚠️ **Recalibrate** whenever you change the audio device, the headphones, or the volume setting of the sound card. Simply run `python calibrate.py` again to create a new calibration file for the new configuration.
 
 ---
 
@@ -184,17 +202,23 @@ The code will output an address to the terminal that you can enter in a browser 
       <img src="doc/Settings_demo.gif" alt="Settings Demo" width="100%">
     </td>
     <td style="border: none; padding-right: 20px;">
-You will be prompted with a settings dialog where you can configure the participant identifier, the measurement list to be used, the audio interface to be used and the blocksize
-
+You will be prompted with a settings dialog where you can configure the participant identifier, select a calibration, choose the measurement list, audio device and blocksize.
 
 After accepting the settings, you can hand the smartphone to the participant.
     </td>
   </tr>
 </table>
 
+- **Calibration**: Select a saved calibration from your available options. The display shows:
+  - Device name and sampling rate (e.g., "Realtek Audio (48000 Hz)")  
+  - Calibration timestamp (e.g., "2026-05-28 13:26")
+
 - **Participant ID**: A unique identifier for this assessment session
+
 - **Measurement List**: Select your prepared stimulus list from the `measurement_lists/` directory
-- **Audio Device**: Only devices with ≥2 output channels are listed (required for stereo/dichotic stimuli)
+
+- **Audio Device**: Automatically pre-selected based on your chosen calibration. The device dropdown is **locked** to prevent manual changes—the device and sampling rate are determined by the calibration to ensure correct gain application.
+
 - **Blocksize**: The buffer size for audio playback (e.g., 512, 1024, 2048). Smaller values reduce latency but may cause audio dropouts on slower systems. Start with 1024 if you experience issues.
 
 

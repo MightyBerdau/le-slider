@@ -15,12 +15,11 @@ class MeasurementSession:
     def __init__(self):
         """Initialize MeasurementSession and load configuration files.
         
-        Reads slider configuration, stimulus lists, and valid audio devices
-        from configuration files on initialization.
+        Reads slider configuration, stimulus lists, valid audio devices,
+        and available calibration files from configuration and calib/ directory.
         """
         self._slider = None # linked at runtime in self.setup()
         self._audio_player = None # created at runtime in self.setup()
-        # self._runtime_settings = None # read at runtime in self.setup()
 
         self._participant_id = None
         self._stimulus_list = None
@@ -32,6 +31,7 @@ class MeasurementSession:
         self._session_id = get_current_time()
 
         self._read_configs()
+        self._load_all_calibrations()
         self._read_measurement_lists()
         self._read_valid_sounddevices()
 
@@ -62,6 +62,16 @@ class MeasurementSession:
         """
         return self._valid_sounddevices
 
+    @property
+    def calibrations(self) -> list[dict]:
+        """Get list of available calibrations with metadata.
+        
+        Returns:
+            List of dicts with keys: filename, device_id, device_name, fs, session_id, timestamp_str
+            Sorted by date (newest first)
+        """
+        return self._calibrations
+
     def _read_configs(self):
         """Read all configuration files needed for the session.
         
@@ -74,10 +84,62 @@ class MeasurementSession:
         """
         self._load_paths_config()
         self._read_slider_config()
-        self._load_calibration()
+
+    def _load_all_calibrations(self):
+        """Load all available calibration files from calib/ directory.
+        
+        Searches calib/ for .json files, extracts metadata from each,
+        and stores sorted list (newest first) for UI selection.
+        
+        If calibrations exist, also loads the latest one into _calib_gain.
+        
+        Raises:
+            MissingCalibrationFileError: If no calibration files found in calib/
+        """
+        calib_dir = Path('calib')
+        calib_files = sorted(calib_dir.glob('calib_*.json'), reverse=True)
+        
+        if not calib_files:
+            raise MissingCalibrationFileError()
+        
+        self._calibrations = []
+        
+        for calib_file in calib_files:
+            try:
+                schema = CalibrationSchema.from_json_file(str(calib_file))
+                # Extract timestamp from filename: calib_YYYY-MM-DDTHH-mm-ss.json
+                timestamp_str = calib_file.stem.replace('calib_', '')
+                self._calibrations.append({
+                    'filename': calib_file.name,
+                    'filepath': str(calib_file),
+                    'device_id': schema.device_id,
+                    'device_name': schema.device_name,
+                    'fs': schema.fs,
+                    'session_id': schema.session_id,
+                    'timestamp_str': timestamp_str,
+                    'gain_calib': schema.gain_calib,
+                })
+            except Exception as e:
+                print(f"⚠️  Could not load calibration {calib_file.name}: {e}")
+                continue
+        
+        if not self._calibrations:
+            raise MissingCalibrationFileError()
+        
+        # Load latest calibration by default
+        latest_calib = self._calibrations[0]
+        self._calib_gain = latest_calib['gain_calib']
+        print(
+            f"\n🎚️  Latest calibration loaded:"
+            f"\n   Timestamp : {latest_calib['timestamp_str']}"
+            f"\n   Device    : {latest_calib['device_name']}"
+            f"\n   Sampling rate: {latest_calib['fs']} Hz"
+            f"\n   Gain L    : {self._calib_gain[0]:.4f}"
+            f"\n   Gain R    : {self._calib_gain[1]:.4f}\n"
+        )
 
     def _load_paths_config(self):
-        """TODO doc"""
+        """Load paths configuration from config/paths.yaml"""
         with open(PATHS_CONFIG_PATH, 'r', encoding="utf-8") as file:
             paths_config = yaml.safe_load(file)
         self._paths_config = paths_config
@@ -91,26 +153,21 @@ class MeasurementSession:
             slider_config = yaml.safe_load(file)
         self._slider_config = slider_config
 
-    def _load_calibration(self):
-        """Load calibration gain from config/calibration.json.
-
+    def set_calibration_by_filename(self, calib_filename: str):
+        """Set active calibration by filename (called from GUI when user selects).
+        
+        Args:
+            calib_filename: Filename of calibration to load (e.g., 'calib_2026-05-28T13-26-08.json')
+            
         Raises:
-            MissingCalibrationFileError: If calibration.json does not exist.
+            ValueError: If calibration file not found in available calibrations
         """
-        try:
-            schema = CalibrationSchema.from_json_file(CALIB_CONFIG_PATH)
-        except FileNotFoundError:
-            path_replacement_calib = next(CALIB_CONFIG_PATH.parent.glob('*.json'))
-            print(f"Could not load default calibration {CALIB_CONFIG_PATH.resolve()}.\n Using {path_replacement_calib.resolve()} instead...")
-            schema = CalibrationSchema.from_json_file(path_replacement_calib)
-
-        self._calib_gain = schema.gain_calib
-        print(
-            f"\n🎚️  Calibration loaded:"
-            f"\n   Timestamp : {schema.session_id}"
-            f"\n   Gain L    : {self._calib_gain[0]:.4f}"
-            f"\n   Gain R    : {self._calib_gain[1]:.4f}\n"
-        )
+        calib = next((c for c in self._calibrations if c['filename'] == calib_filename), None)
+        if not calib:
+            raise ValueError(f"Calibration {calib_filename} not found")
+        
+        self._calib_gain = calib['gain_calib']
+        print(f"✅ Calibration switched to: {calib_filename} ({calib['device_name']} @ {calib['fs']} Hz)")
 
     def _read_measurement_lists(self):
         """Read stimulus list filenames from directory.
@@ -165,7 +222,8 @@ class MeasurementSession:
             stimulus_list:str,
             device_id:int,
             blocksize:int,
-            fs:int):
+            fs:int,
+            calibration_filename:str = None):
         """Call this just before starting the session to implement the runtime arguments provided by the user.
         
         Args:
@@ -175,6 +233,8 @@ class MeasurementSession:
             device_id: Audio device ID for playback
             blocksize: Audio buffer blocksize in samples
             fs: Target sampling rate in Hz for all audio playback
+            calibration_filename: Filename of calibration to use (e.g., 'calib_2026-05-28T13-26-08.json')
+                                 If provided, loads this calibration; otherwise uses latest
             
         Raises:
             MissingStimulisError: If any stimulus files referenced in the measurement list do not exist.
@@ -185,6 +245,10 @@ class MeasurementSession:
         self._device_id = device_id
         self._blocksize = blocksize
         self._target_fs = fs
+        
+        # Load calibration if specified
+        if calibration_filename:
+            self.set_calibration_by_filename(calibration_filename)
 
         with open(Path(self._paths_config['measurement_lists']) / self._stimulus_list, 'r', encoding='utf-8') as f:
             self._filepath_list = [line.strip() for line in f if line.strip()]

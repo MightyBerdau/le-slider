@@ -127,23 +127,31 @@ def mock_paths_config(temp_paths_config, monkeypatch):
 def skip_calibration(monkeypatch):
     """Skip calibration validation in tests.
     
-    This fixture patches the _load_calibration method to skip checking
+    This fixture patches the _load_all_calibrations method to skip checking
     for calibration files, allowing tests to run without requiring
-    actual calibration.json or calib_noise.wav files.
-    
+    actual calib/*.json files.
+
     Args:
         monkeypatch: pytest's monkeypatch fixture
     """
-    def mock_load_calibration(self):
-        """Mock calibration loading - just set default gains."""
-        pass
-    
+    def mock_load_all_calibrations(self):
+        """Mock calibration loading - set default calibrations list and gains."""
+        self._calibrations = [{
+            'filename': 'mock_calib.json',
+            'filepath': '/mock/calib_2026-01-01T00-00-00.json',
+            'device_id': 0,
+            'device_name': 'Mock Device',
+            'fs': 48000,
+            'session_id': 'mock_session',
+            'timestamp_str': '2026-01-01T00-00-00',
+            'gain_calib': [1.0, 1.0],
+        }]
+        self._calib_gain = [1.0, 1.0]
+
     monkeypatch.setattr(
-        'functions.session.MeasurementSession._load_calibration',
-        mock_load_calibration
+        'functions.session.MeasurementSession._load_all_calibrations',
+        mock_load_all_calibrations
     )
-    
-    yield
 
 
 @pytest.fixture

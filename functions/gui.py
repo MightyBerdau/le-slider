@@ -78,7 +78,7 @@ class SettingsScreen(ui.dialog):
             with ui.column().style('display: flex; align-items: center; justify-content: center;'):
                 self._build_extra_fields()  # hook: subclass fields inserted first
                 self._build_device_fields(default_out)
-                ui.button('Submit', on_click=self.submit)
+                self.submit_btn = ui.button('Submit', on_click=self.submit)
 
     def _build_extra_fields(self):
         """Hook for subclasses to inject additional fields before device settings."""
@@ -139,35 +139,76 @@ class SettingsScreenMeasurement(SettingsScreen):
     """Settings dialog specialized for audio measurement experiments.
     
     Extends the base SettingsScreen with measurement-specific configuration fields:
+    - Calibration selection with automatic device/fs pre-population
     - Participant ID input for identifying study subjects
     - Stimulus list selection for choosing the measurement list
+    - Device availability validation with error messaging
     
     The collected settings include all base device settings plus the additional
-    measurement parameters (participant_id and stimulus_list).
+    measurement parameters (participant_id, stimulus_list, calibration_filename).
     """
     def __init__(
             self,
             txt_file_list: list[str],
             device_list: sd.DeviceList,
             device_supported_fs: dict,
+            calibrations: list[dict] = None,
             blocksize_init: int = 256):
-        """Initialize measurement settings dialog with stimulus list options.
+        """Initialize measurement settings dialog with stimulus list and calibration options.
         
         Args:
             txt_file_list: List of available stimulus list file names to choose from
             device_list: List of available sound devices from sounddevice
             device_supported_fs: Dictionary mapping device indices to their supported sampling rates
+            calibrations: List of calibration metadata dicts with keys:
+                         filename, device_id, device_name, fs, timestamp_str
             blocksize_init: Initial blocksize value in samples (default: 256)
         """
         self.txt_file_list = txt_file_list  # must be set before super().__init__ calls _build_extra_fields
+        self.calibrations = calibrations or []
+        self.valid_device_ids = [d['index'] for d in device_list]
+        self.initial_calib_display = None  # Store for validation after super().__init__
         super().__init__(device_list, device_supported_fs, blocksize_init)
+        
+        # Lock device and fs dropdown (chosen by selected calibration)
+        self.dropdown_device.enabled = False
+        self.dropdown_fs.enabled = False
+
+        self.submit_btn.enabled = False # enabled, if valid calibration found
+
+        # Perform initial calibration validation after button is created
+        if self.calibrations and self.dropdown_calibration and self.initial_calib_display:
+            self._validate_calibration(self.initial_calib_display)
 
     def _build_extra_fields(self):
-        """Add participant ID and stimulus list fields."""
+        """Add calibration, participant ID, and stimulus list fields."""
+        # Calibration selector with device availability check
+        if self.calibrations:
+            # Create reliable mapping from display string to calibration dict
+            calib_display_list = [self._format_calibration_display(c) for c in self.calibrations]
+            self._calib_by_display = {display: calib for display, calib in zip(calib_display_list, self.calibrations)}
+            self.initial_calib_display = calib_display_list[0]
+            
+            self.dropdown_calibration = ui.select(
+                calib_display_list,
+                value=calib_display_list[0],
+                label='Calibration',
+                on_change=self._on_calibration_change
+            ).style('width: 100%;')
+            
+            # Error message for device availability (hidden by default)
+            self.error_message = ui.label('').classes('text-warning')
+        else:
+            self.dropdown_calibration = None
+            self._calib_by_display = {}
+            self.error_message = ui.label('No calibrations found').classes('text-warning')
+        
+        # Participant ID field
         self.participant_id_field = ui.input(
             label='Participant ID', value='VP001'
         ).style('width: 100%;')
 
+        # Stimulus list field
         if self.txt_file_list:
             self.dropdown_filelist = ui.select(
                 self.txt_file_list,
@@ -178,11 +219,68 @@ class SettingsScreenMeasurement(SettingsScreen):
             self.dropdown_filelist = None
             ui.label('No stimulus lists found in directory').classes('text-warning')
 
+    def _on_calibration_change(self, event):
+        """When calibration is selected, check device availability and pre-populate fields."""
+        # Get the actual value from the dropdown (on_change passes event, not value)
+        calibration_display = self.dropdown_calibration.value
+        self._validate_calibration(calibration_display)
+
+    def _validate_calibration(self, calibration_display: str):
+        """Validate calibration and update UI state based on device availability.
+        
+        Args:
+            calibration_display: Display string of selected calibration
+        """
+        # Reliably get calibration from mapping
+        selected_calib = self._calib_by_display.get(calibration_display)
+        
+        device_id = selected_calib['device_id']
+        
+        # Device is available: enable submit and pre-populate device/fs
+        self.submit_btn.enabled = True
+        self.error_message.set_text('')
+        
+        # Find device display string
+        device_display = next(
+            (f"{d['index']}: {d['name']}" for d in self.device_list if d['index'] == device_id),
+            None
+        )
+        
+        if device_display:
+            # Set device (on_change callback will update fs options)
+            self.dropdown_device.set_value(device_display)
+            fs_display = f"{selected_calib['fs']} Hz"
+            self.dropdown_fs.set_value(fs_display)
+
+    def _format_calibration_display(self, calib: dict) -> str:
+        """Format calibration metadata for display in dropdown.
+        
+        Args:
+            calib: Calibration metadata dict
+            
+        Returns:
+            Formatted string like "Realtek Audio (48000 Hz) — 2026-05-28 13:26"
+        """
+        timestamp = calib['timestamp_str']  # e.g., "2026-05-28T13-26-08"
+        # Convert to readable format: "2026-05-28 13:26"
+        readable_timestamp = timestamp.replace('T', ' ').rsplit('-', 1)[0]
+        return f"{calib['device_name']} ({calib['fs']} Hz) — {readable_timestamp}"
+
     def _collect_settings(self) -> dict:
         settings = super()._collect_settings()
+        
+        # Extract calibration filename from dropdown value using reliable mapping
+        calib_filename = None
+        if self.dropdown_calibration:
+            calib_display = self.dropdown_calibration.value
+            selected_calib = self._calib_by_display.get(calib_display)
+            if selected_calib:
+                calib_filename = selected_calib['filename']
+        
         settings.update({
             'participant_id': self.participant_id_field.value,
             'stimulus_list': self.dropdown_filelist.value if self.dropdown_filelist else None,
+            'calibration_filename': calib_filename,
         })
         return settings
 

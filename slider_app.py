@@ -16,7 +16,8 @@ async def run_measurement():
     runtime_settings = await SettingsScreenMeasurement(
         session.measurement_lists,
         session.valid_sounddevices,
-        device_supported_fs
+        device_supported_fs,
+        calibrations=session.calibrations
     )
     session.setup(slider, **runtime_settings)
     await session.run() # Starting measurement
