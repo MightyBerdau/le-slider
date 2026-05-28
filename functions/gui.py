@@ -136,12 +136,29 @@ class SettingsScreen(ui.dialog):
 
 
 class SettingsScreenMeasurement(SettingsScreen):
+    """Settings dialog specialized for audio measurement experiments.
+    
+    Extends the base SettingsScreen with measurement-specific configuration fields:
+    - Participant ID input for identifying study subjects
+    - Stimulus list selection for choosing the measurement list
+    
+    The collected settings include all base device settings plus the additional
+    measurement parameters (participant_id and stimulus_list).
+    """
     def __init__(
             self,
             txt_file_list: list[str],
             device_list: sd.DeviceList,
             device_supported_fs: dict,
             blocksize_init: int = 256):
+        """Initialize measurement settings dialog with stimulus list options.
+        
+        Args:
+            txt_file_list: List of available stimulus list file names to choose from
+            device_list: List of available sound devices from sounddevice
+            device_supported_fs: Dictionary mapping device indices to their supported sampling rates
+            blocksize_init: Initial blocksize value in samples (default: 256)
+        """
         self.txt_file_list = txt_file_list  # must be set before super().__init__ calls _build_extra_fields
         super().__init__(device_list, device_supported_fs, blocksize_init)
 
