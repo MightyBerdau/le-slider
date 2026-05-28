@@ -10,6 +10,7 @@ ___
 - [Usage](#usage)
     - [Before You Start](#before-you-start-)
         - [Required Hardware](#required-hardware-)
+        - [Customizable Paths](#customizable-paths-)
         - [Creating Measurement Lists](#creating-measurement-lists-)
         - [Calibration](#calibration-️)
     - [Starting the App](#starting-the-app-️)
@@ -92,6 +93,22 @@ The general idea of this project is to play dynamic stimuli to participants via 
 ### Required Hardware 🎧
 You will at least need **headphones** and a **sound device** that has a **minimum of two output channels**. The code will play audio to channels 0 and 1 (left and right ear).
 For using a **smartphone** to control the slider interface, you will need a **local network**. You can use a WiFi router or create a smartphone hotspot. The computer running the code and the smartphone must be **on the same network**. **Important:** Corporate or institutional networks (e.g., university WiFi) may block the required ports or allow other users to interfere with your connection. A dedicated personal network is strongly recommended for reliable operation.
+
+### Customizable Paths 📂
+By default, the application looks for measurement lists in the `measurement_lists/` directory and writes results to the `results/` directory. You can customize these paths by editing [config/paths.yaml](config/paths.yaml) without changing any code:
+
+```yaml
+measurement_lists: 'measurement_lists/'   # Directory containing stimulus list files
+results: 'results/'                       # Directory for saving ratings
+calibration_filepath: 'calib_noise.wav'   # Path to calibration signal file
+```
+
+**⚠️ Important:** You **must** update the `calibration_filepath` to point to your actual calibration audio file. The default path won't work; replace it with the absolute or relative path to your speech-shaped noise or other calibration signal. Example:
+```yaml
+calibration_filepath: 'C:/path/to/your/calib_noise.wav'
+```
+
+If the calibration file path is not configured correctly, the application will refuse to start.
 
 ### Creating Measurement Lists 📋
 A measurement list defines the order of any number of stimuli to be used for the continuous assessment. You can create any number of measurement lists to the `measurement_lists` directory. A measurement list must be a `.txt` file, where every line contains a filepath, like for example:

@@ -1,19 +1,19 @@
 import argparse
 import json
 import matplotlib.pyplot as plt
-import os
+from pathlib import Path
 
-from functions.data_io import RatingRecordingSchema
+from le_slider_io import load_recording
 
 def main(args: argparse.Namespace):
-    schema = RatingRecordingSchema.from_json_file(args.filepath_recording)
+    schema = load_recording(args.filepath_recording)
 
     # Plotting
     fig, ax = plt.subplots()
     ax.plot(schema.time_stamps, schema.ratings)
     ax.set_xlabel('Time / s')
     ax.set_ylabel('LE / ESCU')
-    ax.set_title(f'{os.path.basename(args.filepath_recording)}')
+    ax.set_title(f'{Path(args.filepath_recording).name}')
     plt.show()
 
 if __name__ == '__main__':

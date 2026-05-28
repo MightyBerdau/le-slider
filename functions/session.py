@@ -5,7 +5,7 @@ import sounddevice as sd
 import yaml
 
 from .audio_player import AudioPlayer
-from .config import SLIDER_CONFIG_PATH, STIMULUS_LISTS_PATH, RESULTS_PATH, CALIB_CONFIG_PATH
+from .config import SLIDER_CONFIG_PATH, PATHS_CONFIG_PATH, CALIB_CONFIG_PATH
 from le_slider_io import RatingRecordingSchema, CalibrationSchema
 from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider, ErrorDialog)
 from .utils import get_current_time, validate_stimulus_files, get_stimulus_samplerates
@@ -72,8 +72,15 @@ class MeasurementSession:
         Called during __init__() to ensure all required configurations are
         available before session setup.
         """
+        self._load_paths_config()
         self._read_slider_config()
         self._load_calibration()
+
+    def _load_paths_config(self):
+        """TODO doc"""
+        with open(PATHS_CONFIG_PATH, 'r', encoding="utf-8") as file:
+            paths_config = yaml.safe_load(file)
+        self._paths_config = paths_config
 
     def _read_slider_config(self):
         """Read slider configuration from YAML file.
@@ -108,7 +115,7 @@ class MeasurementSession:
         
         Filters for .txt files and sorts them alphabetically.
         """
-        measurement_lists_unsorted = [file.name for file in STIMULUS_LISTS_PATH.glob('*.txt')]
+        measurement_lists_unsorted = [file.name for file in Path(self._paths_config['measurement_lists']).glob('*.txt')]
         self._measurement_lists = sorted(measurement_lists_unsorted)
 
     def _read_valid_sounddevices(self):
@@ -145,7 +152,7 @@ class MeasurementSession:
         
         stimulus_base = Path(stimulus_path).stem
         filename = f"{self._participant_id}_{stimulus_base}.json"
-        filepath = RESULTS_PATH / filename
+        filepath = Path(self._paths_config['results']) / filename
 
         schema.to_json_file(str(filepath))
 
@@ -177,7 +184,7 @@ class MeasurementSession:
         self._blocksize = blocksize
         self._target_fs = fs
 
-        with open(STIMULUS_LISTS_PATH / self._stimulus_list, 'r', encoding='utf-8') as f:
+        with open(Path(self._paths_config['measurement_lists']) / self._stimulus_list, 'r', encoding='utf-8') as f:
             self._filepath_list = [line.strip() for line in f if line.strip()]
 
         # Validate that all stimulus files exist before proceeding

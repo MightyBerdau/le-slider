@@ -3,9 +3,10 @@ from nicegui import ui
 from pathlib import Path
 import sounddevice as sd
 from le_slider_io import CalibrationSchema
+import yaml
 
 from functions.audio_player import AudioPlayerBase
-from functions.config import CALIB_CONFIG_PATH
+from functions.config import PATHS_CONFIG_PATH, CALIB_CONFIG_PATH
 from functions.errors import MissingCalibrationSignalError
 from functions.gui import SettingsScreen
 from functions.utils import get_device_supported_samplerates, get_current_time
@@ -14,16 +15,9 @@ CALIB_DIR = Path("calib/")
 
 
 async def main():
-    # Fail fast if no calibration signal is present
-    calib_files = list(CALIB_DIR.rglob("*.wav"))
-    if not calib_files:
-        ui.notify(
-            str(MissingCalibrationSignalError(CALIB_DIR)),
-            type='negative',
-            timeout=0,
-        )
-        return
-    calib_filepath = calib_files[0]
+    with open(PATHS_CONFIG_PATH, 'r', encoding="utf-8") as file:
+        calib_filepath = Path(yaml.safe_load(file)['calibration_filepath'])
+
     print(f'Calibration signal: {calib_filepath}')
 
     valid_devices = [d for d in sd.query_devices() if d['max_output_channels'] >= 2]

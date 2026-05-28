@@ -1,7 +1,9 @@
 from pathlib import Path
 
-SLIDER_CONFIG_PATH = Path('config/slider.yaml')
 DIALOGS_CONFIG_PATH = Path('config/dialogs.yaml')
-STIMULUS_LISTS_PATH = Path('measurement_lists')
-RESULTS_PATH = Path('results')
-CALIB_CONFIG_PATH = Path('config/calibration.json')
+SLIDER_CONFIG_PATH = Path('config/slider.yaml')
+PATHS_CONFIG_PATH = Path('config/paths.yaml')
+
+# STIMULUS_LISTS_PATH = Path('measurement_lists') # DISCONTINUED. READING PATHS FROM CONFIG NOW TO ALLOW FOR CUSTOMIZATION
+# RESULTS_PATH = Path('results') # DISCONTINUED. READING PATHS FROM CONFIG NOW TO ALLOW FOR CUSTOMIZATION
+CALIB_CONFIG_PATH = Path('calib/calibration.json')

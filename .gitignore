@@ -16,6 +16,7 @@
 **/*.wav
 measurement_lists/*.txt
 results/*.json
+calib/*.json
 
 # Excluding anything generating .exe files
 build/

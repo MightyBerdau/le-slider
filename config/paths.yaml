@@ -1,0 +1,6 @@
+# Optional: overwrite default paths, if you plan to read/write stuff from/to other locations
+measurement_lists: 'measurement_lists/'
+results: 'results/'
+
+# Filepaths
+calibration_filepath: 'calib_noise.wav' # change path manually!
