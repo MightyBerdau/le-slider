@@ -100,7 +100,9 @@ class MeasurementSession:
         try:
             schema = CalibrationSchema.from_json_file(CALIB_CONFIG_PATH)
         except FileNotFoundError:
-            raise MissingCalibrationFileError()
+            path_replacement_calib = next(CALIB_CONFIG_PATH.parent.glob('*.json'))
+            print(f"Could not load default calibration {CALIB_CONFIG_PATH.resolve()}.\n Using {path_replacement_calib.resolve()} instead...")
+            schema = CalibrationSchema.from_json_file(path_replacement_calib)
 
         self._calib_gain = schema.gain_calib
         print(

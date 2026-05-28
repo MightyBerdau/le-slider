@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from nicegui import ui
 from pathlib import Path
 import sounddevice as sd
@@ -6,8 +7,7 @@ from le_slider_io import CalibrationSchema
 import yaml
 
 from functions.audio_player import AudioPlayerBase
-from functions.config import PATHS_CONFIG_PATH, CALIB_CONFIG_PATH
-from functions.errors import MissingCalibrationSignalError
+from functions.config import PATHS_CONFIG_PATH
 from functions.gui import SettingsScreen
 from functions.utils import get_device_supported_samplerates, get_current_time
 
@@ -17,7 +17,8 @@ CALIB_DIR = Path("calib/")
 async def main():
     with open(PATHS_CONFIG_PATH, 'r', encoding="utf-8") as file:
         calib_filepath = Path(yaml.safe_load(file)['calibration_filepath'])
-
+    
+    calib_signal_filename = calib_filepath.name
     print(f'Calibration signal: {calib_filepath}')
 
     valid_devices = [d for d in sd.query_devices() if d['max_output_channels'] >= 2]
@@ -26,10 +27,16 @@ async def main():
         device_supported_fs=get_device_supported_samplerates(valid_devices),
     )
 
+    # Extract selected device details
+    device_id = settings['device_id']
+    fs = settings['fs']
+    selected_device = next(d for d in valid_devices if d['index'] == device_id)
+    device_name = selected_device['name']
+
     player = AudioPlayerBase(
-        device_id=settings['device_id'],
+        device_id=device_id,
         blocksize=settings['blocksize'],
-        target_fs=settings['fs'],
+        target_fs=fs,
     )
     play_task: asyncio.Task | None = None
 
@@ -57,18 +64,31 @@ async def main():
         gain_L = 10 ** ((spl_desired - spl_L) / 20)
         gain_R = 10 ** ((spl_desired - spl_R) / 20)
 
+        # Generate timestamped filename: calib_YYYY-MM-DDTHH-mm-ss.json
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        calib_filename = f"calib_{timestamp}.json"
+        calib_filepath_output = CALIB_DIR / calib_filename
+
         schema = CalibrationSchema(
             session_id=get_current_time(),
+            device_id=device_id,
+            device_name=device_name,
+            fs=fs,
+            measured_spl_left=spl_L,
+            measured_spl_right=spl_R,
+            desired_spl=spl_desired,
+            calib_signal_path=calib_signal_filename,
             gain_calib=[gain_L, gain_R],
         )
-        saved_path = schema.to_json_file(CALIB_CONFIG_PATH, prevent_overwrite=False)
+        saved_path = schema.to_json_file(str(calib_filepath_output), prevent_overwrite=False)
         msg = f'Calibration saved: gain_L={gain_L:.4f}, gain_R={gain_R:.4f}'
         ui.notify(f'{msg} → {saved_path}', type='positive')
         print(f'✅ {msg} | file: {saved_path}')
 
     with ui.card().classes('absolute-center items-center gap-4').style('min-width: 340px;'):
         ui.label('Calibration').classes('text-xl font-bold')
-        ui.label(f'Signal: {calib_filepath.name}').classes('text-sm text-gray-500')
+        ui.label(f'Signal: {calib_signal_filename}').classes('text-sm text-gray-500')
+        ui.label(f'Device: {device_name} @ {fs} Hz').classes('text-sm text-gray-500')
 
         btn = ui.button('Start', on_click=toggle)
 
