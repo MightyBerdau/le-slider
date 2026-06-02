@@ -5,7 +5,7 @@ import sounddevice as sd
 import yaml
 
 from .audio_player import AudioPlayer
-from .config import SLIDER_CONFIG_PATH, PATHS_CONFIG_PATH, CALIB_CONFIG_PATH
+from .config import SLIDER_CONFIG_PATH, PATHS_CONFIG_PATH
 from le_slider_io import RatingRecordingSchema, CalibrationSchema
 from .gui import (StartDialog, PostStimulusDialog, EndScreen, RatingSlider, ErrorDialog)
 from .utils import get_current_time, validate_stimulus_files, get_stimulus_samplerates
