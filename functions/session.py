@@ -211,8 +211,9 @@ class MeasurementSession:
             )
         
         stimulus_base = Path(stimulus_path).stem
-        filename = f"{self._participant_id}_{stimulus_base}.json"
-        filepath = Path(self._paths_config['results']) / filename
+        filename = f"{stimulus_base}.json"
+        participant_dir = Path(self._paths_config['results']) / self._participant_id
+        filepath = participant_dir / filename
 
         schema.to_json_file(str(filepath))
 

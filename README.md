@@ -237,17 +237,17 @@ Finally, an end screen confirms that the measurement is complete.
   </tr>
 </table>
 
-All ratings are automatically saved to `results/` as `<participant ID>_<base filename>.json`.
+All ratings are automatically saved to `results/<participant_id>/` as `<stimulus_name>.json`.
 
 ---
 
 ## Load Ratings 💾
-You can read the recorded ratings using the [le_slider_io](https://github.com/MightyBerdau/LE-Slider-IO) project. See the [examples/plot_recordings.py](examples/plot_recordings.py) file for how to use it.
+You can read the recorded ratings using the [le_slider_io](https://github.com/MightyBerdau/LE-Slider-IO) project. See the [plot_recordings.py](plot_recordings.py) file for how to use it.
 
 ### Output Format
-Results are saved in `results/{participant_id}/` as CSV files named `{stimulus_filename}_ratings.csv`. Each file contains:
-- `timestamp`: Relative time in seconds from stimulus start
-- `rating`: Slider value at that moment (float between min and max)
+Results are saved as JSON files in the `results/{participant_id}/` directory named `{stimulus_name}.json`. Each file contains:
+- `time_stamps`: List of timestamps in seconds (relative to stimulus start) when each rating was recorded
+- `ratings`: List of slider values (float between min and max) corresponding to each timestamp
 ___
 
 # Customization
