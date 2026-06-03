@@ -31,6 +31,10 @@ class AudioPlayerBase():
         self._audio = None
         self._done = None
         self._loop = None
+        
+        # Preload infrastructure: signals when audio is ready for playback
+        self._audio_loaded = asyncio.Event()
+        self._preloaded_audio = None
 
     @property
     def calib_gain(self) -> np.ndarray:
@@ -65,17 +69,53 @@ class AudioPlayerBase():
         if self._done is not None and self._loop is not None:
             self._loop.call_soon_threadsafe(self._done.set)
 
+    async def pre_load_stimulus(self, filepath: str) -> None:
+        """Preload audio file asynchronously into memory.
+        
+        Loads audio in a thread pool to avoid blocking the event loop.
+        Once loaded, sets the _audio_loaded event to signal playback is ready.
+        
+        Args:
+            filepath: Path to audio file to load
+        """
+        def _blocking_load():
+            print(f"Loading {filepath}... started")
+            audio, sr = librosa.load(filepath, sr=self._target_fs, mono=False)
+            if audio.ndim == 1:
+                audio = np.stack([audio, audio])  # mono → stereo duplication
+            duration = audio.shape[1] / sr if audio.ndim > 1 else audio.shape[0] / sr
+            return audio, duration
+        
+        try:
+            self._audio_loaded.clear()
+            audio, duration = await asyncio.to_thread(_blocking_load)
+            print(f"Loaded {filepath} ({duration:.1f}s)")
+            self._preloaded_audio = audio
+            self._audio_loaded.set()
+        except Exception as e:
+            print(f"⚠️  Error loading {filepath}: {e}")
+            self._audio_loaded.set()  # Signal ready to avoid deadlock
+
     async def play_stimulus(self, filepath: str) -> None:
         """Play audio stimulus with calibration gain applied.
+        
+        Waits for audio to be preloaded before starting playback.
 
         Args:
-            filepath: Path to audio file to play
+            filepath: Path to audio file to play (used for reference/logging)
         """
-        audio = librosa.load(filepath, sr=self._target_fs, mono=False)[0]
-        if audio.ndim == 1:
-            audio = np.stack([audio, audio])  # mono → stereo duplication
-
+        # Wait for audio to be preloaded
+        await self._audio_loaded.wait()
+        
+        if self._preloaded_audio is None:
+            raise RuntimeError(f"Audio not loaded for {filepath}")
+        
+        audio = self._preloaded_audio
         self._audio = audio.T * self._calib_gain  # shape: (samples, 2), gain applied per channel
+        
+        # Reset for next preload
+        self._audio_loaded.clear()
+        self._preloaded_audio = None
 
         self._done = asyncio.Event()
         self._loop = asyncio.get_event_loop()

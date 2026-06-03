@@ -131,6 +131,7 @@ class TestMeasurementSessionRun:
             mock_audio_player.play_stimulus_and_record_ratings = AsyncMock(
                 return_value=[1.0, 2.0, 3.0]
             )
+            mock_audio_player.pre_load_stimulus = AsyncMock()
             session._audio_player = mock_audio_player
             session._write_recordings = Mock()
             
@@ -268,6 +269,7 @@ class TestMeasurementSessionRun:
             
             mock_audio_player = AsyncMock()
             mock_audio_player.play_stimulus_and_record_ratings = AsyncMock(return_value=[5.0])
+            mock_audio_player.pre_load_stimulus = AsyncMock()
             session._audio_player = mock_audio_player
             session._write_recordings = Mock()
             

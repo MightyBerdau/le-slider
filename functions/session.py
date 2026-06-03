@@ -1,6 +1,7 @@
 
 import os
 from pathlib import Path
+import asyncio
 import sounddevice as sd
 import yaml
 
@@ -302,19 +303,37 @@ class MeasurementSession:
         """Execute the complete measurement session workflow.
         
         Iterates through all stimuli in the filepath_list, presenting dialogs
-        and collecting ratings for each stimulus. For each stimulus:
-        1. Opens StartDialog to prompt user to begin
-        2. Calls play_rec_and_time to play audio and collect ratings
-        3. Writes the recorded ratings to JSON file
-        4. Opens PostStimulusDialog between stimuli
+        and collecting ratings for each stimulus.
         
-        After all stimuli are processed, opens EndScreen to display completion.
+        Workflow:
+        1. Preload first stimulus before loop starts
+        2. For each stimulus:
+           - Open StartDialog
+           - Play audio (waits for preload internally)
+           - Record ratings
+           - Queue next stimulus for preloading
+           - Open PostStimulusDialog
+        3. Show EndScreen
+        
         This is an async method that must be awaited.
         """
-        for stimulus_path in self._filepath_list:
-            await StartDialog()
+        # Preload first stimulus before starting the measurement loop
+        if len(self._filepath_list) > 0:
+            asyncio.create_task(self._audio_player.pre_load_stimulus(self._filepath_list[0]))
+        
+        for idx, stimulus_path in enumerate(self._filepath_list):
+            start_dialog = StartDialog()
+            await start_dialog
             ratings, stimulus_start, stimulus_end = await self.play_rec_and_time(stimulus_path) 
             self._write_recordings(ratings, stimulus_path, stimulus_start, stimulus_end)
-            await PostStimulusDialog()
+            
+            # Queue next stimulus for preloading after current playback finishes
+            next_idx = idx + 1
+            if next_idx < len(self._filepath_list):
+                next_stimulus_path = self._filepath_list[next_idx]
+                asyncio.create_task(self._audio_player.pre_load_stimulus(next_stimulus_path))
+            
+            post_stimulud_dialog = PostStimulusDialog()
+            await post_stimulud_dialog
 
         EndScreen().open()
