@@ -48,6 +48,7 @@ async def main():
             btn.set_text('Start')
         else:
             async def _play():
+                await player.pre_load_stimulus(calib_filepath)
                 await player.play_stimulus(calib_filepath)
                 btn.set_text('Start')
             play_task = asyncio.create_task(_play())
