@@ -52,7 +52,8 @@ class SettingsScreen(ui.dialog):
             self,
             device_list: sd.DeviceList,
             device_supported_fs: dict,
-            blocksize_init: int = 256):
+            blocksize_init: int = 256,
+            fs_preferred: list[int] | None = None):
         """Initialize a settings dialog for audio device configuration.
         
         Creates a persistent modal dialog allowing users to select audio output device,
@@ -63,12 +64,16 @@ class SettingsScreen(ui.dialog):
             device_list: List of available sound devices from sounddevice
             device_supported_fs: Dictionary mapping device indices to their supported sampling rates
             blocksize_init: Initial blocksize value in samples (default: 256)
+            fs_preferred: List of preferred sampling frequencies in descending priority order.
+                         If provided, the first available frequency in this list will be selected
+                         for each device. If None or empty, the highest available frequency is used.
         """
         super().__init__()
         self.props('persistent')
         self.device_list = device_list
         self.device_supported_fs = device_supported_fs
         self.blocksize_init = blocksize_init
+        self.fs_preferred = fs_preferred
 
         self.idx_list = [d['index'] for d in self.device_list]
         self.selection_list = [f"{d['index']}: {d['name']}" for d in self.device_list]
@@ -80,6 +85,34 @@ class SettingsScreen(ui.dialog):
                 self._build_device_fields(default_out)
                 self.submit_btn = ui.button('Submit', on_click=self.submit)
 
+    def _select_fs_from_available(self, available_fs_list: list[int]) -> str:
+        """Select sampling frequency from available options based on preference list.
+        
+        Args:
+            available_fs_list: List of available sampling frequencies (integers)
+        
+        Returns:
+            Formatted string like "48000 Hz" for dropdown use
+        """
+        if not available_fs_list:
+            return ''
+        
+        # If no preference is set or it's empty, use the highest available frequency
+        if not self.fs_preferred:
+            selected_fs = available_fs_list[-1]  # Highest frequency
+        else:
+            # Try to find the first fs in the preference list that's available
+            selected_fs = None
+            for preferred_fs in self.fs_preferred:
+                if preferred_fs in available_fs_list:
+                    selected_fs = preferred_fs
+                    break
+            # If no preference matched, fall back to highest available
+            if selected_fs is None:
+                selected_fs = available_fs_list[-1]
+        
+        return f'{selected_fs} Hz'
+
     def _build_extra_fields(self):
         """Hook for subclasses to inject additional fields before device settings."""
         pass
@@ -89,10 +122,12 @@ class SettingsScreen(ui.dialog):
         if self.selection_list:
             def update_fs_options():
                 selected_device_id = self.idx_list[self.selection_list.index(self.dropdown_device.value)]
-                new_fs_labels = [f'{fs} Hz' for fs in self.device_supported_fs.get(selected_device_id, [])]
+                available_fs_list = self.device_supported_fs.get(selected_device_id, [])
+                new_fs_labels = [f'{fs} Hz' for fs in available_fs_list]
                 self.dropdown_fs.set_options(new_fs_labels)
                 if new_fs_labels:
-                    self.dropdown_fs.set_value(new_fs_labels[-1])
+                    selected_fs_label = self._select_fs_from_available(available_fs_list)
+                    self.dropdown_fs.set_value(selected_fs_label)
 
             self.dropdown_device = ui.select(
                 self.selection_list,
@@ -103,9 +138,10 @@ class SettingsScreen(ui.dialog):
 
             default_fs_list = self.device_supported_fs.get(default_out if default_out is not None else self.idx_list[0], [])
             fs_labels = [f'{fs} Hz' for fs in default_fs_list]
+            initial_fs_value = self._select_fs_from_available(default_fs_list) if default_fs_list else ''
             self.dropdown_fs = ui.select(
                 fs_labels,
-                value=fs_labels[-1] if fs_labels else '',
+                value=initial_fs_value,
                 label='Sampling Rate (fs)'
             ).style('width: 100%;')
         else:

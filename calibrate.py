@@ -25,6 +25,7 @@ async def main():
     settings = await SettingsScreen(
         device_list=valid_devices,
         device_supported_fs=get_device_supported_samplerates(valid_devices),
+        fs_preferred=[48000, 44100]
     )
 
     # Extract selected device details
