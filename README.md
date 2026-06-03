@@ -138,14 +138,37 @@ A speech-shaped noise signal is recommended because its long-term spectrum match
 python calibrate.py
 ```
 
-1. **Select audio device**: Choose the audio interface you'll use for the measurement
-2. **Select blocksize**: Choose appropriate buffer size (512-2048 samples)
-3. Click **Submit** to proceed
-4. Click **Start** to begin looped playback of the calibration signal through headphones
-5. Measure sound pressure level (SPL) at both ears using a sound level meter
-6. Enter measured SPL for **left ear** and **right ear** separately  
-7. Enter **desired target SPL** (presentation level for stimuli)
-8. Click **Save Calibration**
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="40%" style="border: none;">
+      <img src="doc/Settings_Calibration.gif" alt="Calib Settings" width="100%">
+    </td>
+    <td style="border: none; padding-right: 20px;">
+You will be prompted with a settings dialog where you can configure the audio device, sampling frequency and blocksize for the calibration.
+After submitting, you will move on to the actual calibration interface.
+    </td>
+  </tr>
+</table>
+
+- **Audio Device**: Audio device to be used for calibration and measurement later.
+- **Sampling Rate**: Sampling frequency in Hz to be used for the selected audio device for calibration and measurement later.
+- **Blocksize**: The buffer size for audio playback (e.g., 256, 512, 1024). Smaller values reduce latency but may cause audio dropouts on slower systems. Start with 1024 if you experience issues.
+
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="border: none; padding-right: 20px;">
+Once you have set up the hardware equipment for calibrating the headphones to measure the sound pressure level for left and right you can Start playback of the calibration stimulus.
+You will then have to enter the measured sound pressure level on the left and right in the edit fields. Enter the desired sound pressure level, which the calibration noise should actually be at, in the edit field below. You may then save the calibration and stop the script. You are now ready to move on to the measurement!
+    </td>
+    <td width="40%" style="border: none;">
+      <img src="doc/Calibration.gif" alt="Calibration" width="100%">
+    </td>
+  </tr>
+</table>
+
+- **Measured SPL - Left ear**: Measured sound pressure level in dB SPL of the left side of the headphones.
+- **Measured SPL - Right ear**: Measured sound pressure level in dB SPL of the right side of the headphones.
+- **Desired SPL**: The sound pressure level, which the calibration noise should actually be played back at. The difference to the measured sound pressure levels left and right will be saved to scale the measurement stimuli later.
 
 #### Multi-Calibration Support
 
@@ -199,7 +222,7 @@ The code will output an address to the terminal that you can enter in a browser 
 <table cellpadding="0" cellspacing="0">
   <tr>
     <td width="40%" style="border: none;">
-      <img src="doc/Settings_demo.gif" alt="Settings Demo" width="100%">
+      <img src="doc/Settings_Measurement.gif" alt="Settings Measurement" width="100%">
     </td>
     <td style="border: none; padding-right: 20px;">
 You will be prompted with a settings dialog where you can configure the participant identifier, select a calibration, choose the measurement list, audio device and blocksize.
@@ -215,11 +238,13 @@ After accepting the settings, you can hand the smartphone to the participant.
 
 - **Participant ID**: A unique identifier for this assessment session
 
-- **Measurement List**: Select your prepared stimulus list from the `measurement_lists/` directory
+- **Stimulus List**: Select your prepared stimulus list from the `measurement_lists/` directory
 
 - **Audio Device**: Automatically pre-selected based on your chosen calibration. The device dropdown is **locked** to prevent manual changes—the device and sampling rate are determined by the calibration to ensure correct gain application.
 
-- **Blocksize**: The buffer size for audio playback (e.g., 512, 1024, 2048). Smaller values reduce latency but may cause audio dropouts on slower systems. Start with 1024 if you experience issues.
+- **Sampling Rate**: Automatically pre-selected based on your chosen calibration. The sampling rate dropdown is **locked** to prevent manual changes—the device and sampling rate are determined by the calibration to ensure correct gain application.
+
+- **Blocksize**: The buffer size for audio playback (e.g., 256, 512, 1024). Smaller values reduce latency but may cause audio dropouts on slower systems. Start with 1024 if you experience issues. **Note that the blocksize also defines the interval length for recordings being written! Smaller values will result in more frequently written recordings.**
 
 
 ### Assessment 🎚️
@@ -232,7 +257,7 @@ After each stimulus, a post-stimulus dialog appears. Once dismissed, the code pr
 Finally, an end screen confirms that the measurement is complete.
     </td>
     <td width="40%" style="border: none;">
-      <img src="doc/Stimulus_demo.gif" alt="Stimulus Demo" width="100%">
+      <img src="doc/Measurement.gif" alt="Measurement" width="100%">
     </td>
   </tr>
 </table>
