@@ -29,6 +29,8 @@ class MeasurementSession:
         self._target_fs = None
         self._calib_gain = None
 
+        self._on_lists_updated = None  # callback for updating measurement lists
+
         self._session_id = get_current_time()
 
         self._read_configs()
@@ -175,8 +177,26 @@ class MeasurementSession:
         
         Filters for .txt files and sorts them alphabetically.
         """
-        measurement_lists_unsorted = [file.name for file in Path(self._paths_config['measurement_lists']).glob('*.txt')]
-        self._measurement_lists = sorted(measurement_lists_unsorted)
+        self._measurement_lists = self._scan_measurement_lists()
+
+    def register_lists_callback(self, callback):
+        """Register a callback invoked with updated list when new measurement lists are detected."""
+        self._on_lists_updated = callback
+
+    def _scan_measurement_lists(self) -> list[str]:
+        """Scan directory and return sorted list of .txt filenames."""
+        unsorted = [f.name for f in Path(self._paths_config['measurement_lists']).glob('*.txt')]
+        return sorted(unsorted)
+
+    async def watch_measurement_lists(self, interval: float = 2.0):
+        """Periodically check for new measurement lists and notify via callback."""
+        while True:
+            await asyncio.sleep(interval)
+            current = self._scan_measurement_lists()
+            if current != self._measurement_lists:
+                self._measurement_lists = current
+                if self._on_lists_updated:
+                    self._on_lists_updated(current)
 
     def _read_valid_sounddevices(self):
         """Read and filter stereo output audio devices.

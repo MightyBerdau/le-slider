@@ -1,3 +1,4 @@
+import asyncio
 from nicegui import ui
 
 from functions.gui import RatingSlider, SettingsScreenMeasurement
@@ -13,12 +14,21 @@ async def run_measurement():
     session = MeasurementSession() # Manages measurement procedure
     slider = RatingSlider(**session.slider_config) # GUI element for continuous user rating
     device_supported_fs = get_device_supported_samplerates(session.valid_sounddevices)
-    runtime_settings = await SettingsScreenMeasurement(
+
+    settings_screen = SettingsScreenMeasurement(
         session.measurement_lists,
         session.valid_sounddevices,
         device_supported_fs,
         calibrations=session.calibrations
     )
+
+    # Session notifies settings GUI, if new lists have been added during runtime
+    session.register_lists_callback(settings_screen.update_measurement_lists)
+    watcher_task = asyncio.create_task(session.watch_measurement_lists())
+
+    runtime_settings = await settings_screen
+    watcher_task.cancel() # no more scanning for measurement lists required...
+
     session.setup(slider, **runtime_settings)
     await session.run() # Starting measurement
 

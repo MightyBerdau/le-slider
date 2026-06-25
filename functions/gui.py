@@ -319,6 +319,24 @@ class SettingsScreenMeasurement(SettingsScreen):
             'calibration_filename': calib_filename,
         })
         return settings
+    
+    def update_measurement_lists(self, new_lists: list[str]):
+        """Update the stimulus list dropdown with a new list of available files.
+        
+        Called externally (e.g. by MeasurementSession watcher) when new lists are detected.
+        Preserves the current selection if it still exists in the new list.
+        
+        Args:
+            new_lists: Updated sorted list of .txt filenames
+        """
+        if not self.dropdown_filelist:
+            return
+        current_value = self.dropdown_filelist.value
+        self.dropdown_filelist.set_options(new_lists)
+        if current_value in new_lists:
+            self.dropdown_filelist.set_value(current_value)
+        elif new_lists:
+            self.dropdown_filelist.set_value(new_lists[0])
 
 class StartDialog(ui.dialog):
     def __init__(self):
