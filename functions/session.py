@@ -343,7 +343,8 @@ class MeasurementSession:
             asyncio.create_task(self._audio_player.pre_load_stimulus(self._filepath_list[0]))
         
         for idx, stimulus_path in enumerate(self._filepath_list):
-            start_dialog = StartDialog()
+            stimulus_number = idx + 1  # 1-basiert für Anzeige
+            start_dialog = StartDialog(stimulus_number=stimulus_number)
             await start_dialog
             ratings, stimulus_start, stimulus_end = await self.play_rec_and_time(stimulus_path) 
             self._write_recordings(ratings, stimulus_path, stimulus_start, stimulus_end)

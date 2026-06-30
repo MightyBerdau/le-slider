@@ -5,11 +5,11 @@
 
 dialogs:
   start_dialog:
-    text: 'Drücken Sie "Start", wenn Sie die Kopfhörer aufgesetzt haben und bereit sind!'
+    text: 'Drücken Sie "Start", wenn Sie die Kopfhörer aufgesetzt haben und bereit sind!' # Alternative: 'Drücken Sie "Start", um sich Abschnitt {n} anzuhören!'
     button: 'Start'
   
   post_stimulus_dialog:
-    text: 'Bitte beantworten Sie die Fragen auf dem Fragebogen! Drücken Sie "Weiter", wenn Sie alle Fragen beantwortet haben!'
+    text: 'Bitte beantworten Sie die Fragen auf dem Fragebogen! Drücken Sie "Weiter", wenn Sie alle Fragen beantwortet haben!' # Alternative: 'Beantworten Sie nun den Fragebogen zu Abschnitt {n}. Drücken Sie "Weiter", wenn Sie fertig sind!'
     button: 'Weiter'
   
   end_screen:

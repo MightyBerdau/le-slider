@@ -316,7 +316,8 @@ Customize instructions and dialog texts by editing [config/dialogs.yaml](config/
 
 Each dialog has a `text` field for the message and a `button` field for the button label. Modify these strings to translate the interface, customize instructions, or update text for your participants.
 
-### Example: Custom Dialog Texts
+### Example: Static Text (Default)
+By default, all dialogs display the same text for every stimulus:
 ```yaml
 dialogs:
   start_dialog:
@@ -330,7 +331,23 @@ dialogs:
   end_screen:
     text: 'Thank you for completing the assessment!'
 ```
+> ⚠️ **Avoid curly braces** in your text unless you are intentionally using the {n} placeholder (see below). The text is processed by Python's str.format(), which interprets anything inside { } as a placeholder. For example, "Listen to {section} 1" will not display as intended. If you need a literal curly brace in your text, escape it by doubling it: {{ and }} will render as { and }.
 
+### Example: Stimulus-Numbered Text (Optional)
+If you want the dialogs to reference the current stimulus number, use the `{n}` placeholder anywhere in the `text` field. It will automatically be replaced with the 1-based stimulus index at runtime:
+```yaml
+dialogs:
+  start_dialog:
+    text: 'Press "Start" to listen to section {n}.'
+    button: 'Start'
+  
+  post_stimulus_dialog:
+    text: 'Please answer the questionnaire for section {n}. Press "Next" when done.'
+    button: 'Next'
+```
+
+This would display _"… section 1"_, _"… section 2"_, etc. for each successive stimulus.
+>  **Note**: The {n} placeholder is entirely optional. Leaving it out causes no errors — the text is simply displayed unchanged, as before.
 ___
 
 # Troubleshooting

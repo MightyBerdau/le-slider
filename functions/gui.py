@@ -339,45 +339,56 @@ class SettingsScreenMeasurement(SettingsScreen):
             self.dropdown_filelist.set_value(new_lists[0])
 
 class StartDialog(ui.dialog):
-    def __init__(self):
-        """Dialog allowing user to start audio playback once ready."""
+    def __init__(self, stimulus_number: int | None = None):
+        """Dialog allowing user to start audio playback once ready.
+        
+        Args:
+            stimulus_number: 1-based index of the current stimulus, used to
+                             fill the {n} placeholder in the configured text.
+        """
         super().__init__()
         self.props('persistent')
 
         config = _dialogs_config.get('start_dialog', {})
-        text = config.get('text', 'Start')
+        raw_text = config.get('text', 'Start')
         button_label = config.get('button', 'Start')
 
-        # Build the UI inside the dialog
+        text = raw_text.format(n=stimulus_number) if stimulus_number is not None else raw_text
+
         with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
             with ui.row().classes('w-full justify-center'):
                 ui.label(text)
             with ui.row().classes('w-full justify-center'):
                 ui.button(button_label, on_click=self.submit)
-    
+
     def submit(self):
-        """Submit dialog and proceed to audio playback."""
         super().submit(True)
 
+
 class PostStimulusDialog(ui.dialog):
-    def __init__(self):
-        """Dialog reminding user to answer questions after each stimulus."""
+    def __init__(self, stimulus_number: int | None = None):
+        """Dialog reminding user to answer questions after each stimulus.
+        
+        Args:
+            stimulus_number: 1-based index of the current stimulus, used to
+                             fill the {n} placeholder in the configured text.
+        """
         super().__init__()
         self.props('persistent')
 
         config = _dialogs_config.get('post_stimulus_dialog', {})
-        text = config.get('text', 'Please answer the questionnaire.')
+        raw_text = config.get('text', 'Please answer the questionnaire.')
         button_label = config.get('button', 'Next')
 
-        # Build the UI inside the dialog
+        text = raw_text.format(n=stimulus_number) if stimulus_number is not None else raw_text
+
         with self, ui.card().style('margin: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);'):
             with ui.row().classes('w-full justify-center'):
                 self.text_label = ui.label(text)
             with ui.row().classes('w-full justify-center'):
                 ui.button(button_label, on_click=self.submit)
-    
+
     def submit(self):
-        """Submit dialog and proceed to next stimulus."""
         super().submit(True)
 
 class EndScreen(ui.dialog):
